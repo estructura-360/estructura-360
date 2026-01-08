@@ -26,8 +26,8 @@ export function Sidebar() {
             <HardHat className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold font-display tracking-wide">ESTRUCTURA</h1>
-            <p className="text-xs text-primary-foreground/60 font-medium tracking-[0.2em] uppercase">360 Engineering</p>
+            <h1 className="text-xl font-bold font-display tracking-wide text-white">ESTRUCTURA</h1>
+            <p className="text-xs text-white font-medium tracking-[0.2em] uppercase">360 Engineering</p>
           </div>
         </div>
       </div>
