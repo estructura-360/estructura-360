@@ -36,7 +36,7 @@ export function MetricCard({
     >
       <div className="flex justify-between items-start">
         <div className="space-y-1">
-          <p className={cn("text-sm font-medium", highlight ? "text-primary-foreground/70" : "text-muted-foreground")}>
+          <p className={cn("text-sm font-medium", highlight ? "text-primary-foreground" : "text-muted-foreground")}>
             {title}
           </p>
           <div className="flex items-baseline gap-1">
@@ -46,14 +46,14 @@ export function MetricCard({
             {unit && <span className={cn("text-sm font-medium", highlight ? "text-accent" : "text-muted-foreground")}>{unit}</span>}
           </div>
           {subtitle && (
-            <p className={cn("text-xs mt-1", highlight ? "text-primary-foreground/50" : "text-muted-foreground/80")}>
+            <p className={cn("text-xs mt-1", highlight ? "text-primary-foreground/80" : "text-muted-foreground/80")}>
               {subtitle}
             </p>
           )}
         </div>
         <div className={cn(
           "p-3 rounded-xl",
-          highlight ? "bg-white/10 text-accent" : "bg-primary/5 text-primary"
+          highlight ? "bg-accent text-white" : "bg-primary/5 text-primary"
         )}>
           <Icon className="w-6 h-6" />
         </div>
