@@ -6,9 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Share2, Trash2, FileDown, Loader2 } from "lucide-react";
+import { Share2, Trash2, FileDown, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { api, type Calculation } from "@shared/routes";
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+
+// Add declaration for jspdf-autotable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 export default function BudgetPage() {
   const { data: projects, isLoading: isLoadingProjects } = useProjects();
@@ -49,18 +58,87 @@ export default function BudgetPage() {
     updateProject.mutate({ id: parseInt(selectedProjectId), laborCostPerM2: value });
   };
 
+  const handleDownloadPDF = () => {
+    if (!projectDetails) return;
+
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFillColor(15, 23, 42); // Navy Blue
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text("ESTRUCTURA 360", 15, 25);
+    doc.setFontSize(10);
+    doc.text("ENGINEERING SOLUTIONS", 15, 32);
+    
+    // Project Info
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(16);
+    doc.text("PRESUPUESTO FORMAL", 15, 55);
+    
+    doc.setFontSize(10);
+    doc.text(`Cliente: ${projectDetails.clientName}`, 15, 65);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 15, 70);
+    doc.text(`Proyecto ID: #360-${projectDetails.id}`, 15, 75);
+
+    // Table
+    const tableData = budgetItems.map(item => [
+      item.type === 'slab' ? 'Losa Vigueta y Bovedilla' : 'Muro Panel Estructural',
+      `${item.area} m2`,
+      `$${item.unitPrice.toLocaleString('es-MX')}`,
+      `$${item.total.toLocaleString('es-MX')}`
+    ]);
+
+    doc.autoTable({
+      startY: 85,
+      head: [['Concepto', 'Cantidad', 'Precio Unitario', 'Total']],
+      body: tableData,
+      headStyles: { fillColor: [15, 23, 42] },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    const finalY = (doc as any).lastAutoTable.cursor.y + 15;
+
+    // Summary
+    doc.setFontSize(12);
+    doc.text(`Subtotal: $${subtotal.toLocaleString('es-MX')}`, 140, finalY);
+    doc.text(`IVA (16%): $${(totalBudget * 0.16).toLocaleString('es-MX')}`, 140, finalY + 7);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL: $${(totalBudget * 1.16).toLocaleString('es-MX')}`, 140, finalY + 17);
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150, 150, 150);
+    doc.text("Este presupuesto tiene una vigencia de 15 días naturales.", 15, 280);
+    doc.text("Generado automáticamente por Estructura 360 Engineering.", 15, 285);
+
+    doc.save(`Presupuesto_${projectDetails.clientName.replace(/\s+/g, '_')}.pdf`);
+    
+    toast({
+      title: "PDF Generado",
+      description: "El presupuesto se ha descargado correctamente.",
+    });
+  };
+
   const handleShareWhatsApp = () => {
     if (!projectDetails) return;
     
     const message = `
-*Presupuesto ESTRUCTURA 360*
-Cliente: ${projectDetails.clientName}
-Total: $${totalBudget.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+*PRESUPUESTO FORMAL - ESTRUCTURA 360*
+------------------------------------
+*Cliente:* ${projectDetails.clientName}
+*Total:* $${(totalBudget * 1.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })} (IVA Incluido)
 
-Detalles:
+*Resumen de Conceptos:*
 ${budgetItems.map(item => `- ${item.type === 'slab' ? 'Losa' : 'Muro'} (${item.area}m²): $${item.total.toLocaleString()}`).join('\n')}
 
-_Generado automáticamente por Estructura 360_
+_Le adjunto el PDF detallado con las especificaciones técnicas._
+------------------------------------
+_Generado por Estructura 360 Engineering_
     `.trim();
 
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
@@ -219,6 +297,15 @@ _Generado automáticamente por Estructura 360_
                 >
                   <Share2 className="mr-2 h-5 w-5" />
                   Enviar por WhatsApp
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10 font-semibold py-6 rounded-xl shadow-lg transition-transform hover:-translate-y-1 active:translate-y-0"
+                  onClick={handleDownloadPDF}
+                >
+                  <FileText className="mr-2 h-5 w-5" />
+                  Descargar PDF Formal
                 </Button>
               </CardContent>
             </Card>
