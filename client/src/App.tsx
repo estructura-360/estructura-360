@@ -8,6 +8,7 @@ import CalculatorPage from "@/pages/Calculator";
 import ComparativePage from "@/pages/Comparative";
 import BudgetPage from "@/pages/Budget";
 import TechnicalPage from "@/pages/Technical";
+import AboutPage from "@/pages/About";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/comparative" component={ComparativePage} />
       <Route path="/budget" component={BudgetPage} />
       <Route path="/technical" component={TechnicalPage} />
+      <Route path="/about" component={AboutPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calculator, BarChart3, FileText, BookOpen, Menu, X, Hammer, HardHat } from "lucide-react";
+import { Calculator, BarChart3, FileText, BookOpen, Menu, X, Hammer, HardHat, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -10,6 +10,7 @@ const navigation = [
   { name: "Comparativa", href: "/comparative", icon: BarChart3 },
   { name: "Presupuesto", href: "/budget", icon: FileText },
   { name: "Info Técnica", href: "/technical", icon: BookOpen },
+  { name: "Acerca de", href: "/about", icon: Info },
 ];
 
 export function Sidebar() {

@@ -17,11 +17,17 @@ export default function ComparativePage() {
   // Default aggregate data if no calc exists
   const aggregateData = projectDetails?.calculations?.reduce((acc, curr) => {
     const res = curr.results as any;
+    // Check if comparison values exist and are numeric
+    const concreteSavedValue = parseFloat(res.comparison?.concreteSaved || 0);
+    const weightReducedValue = parseFloat(res.comparison?.weightReduced || 0);
+    const timeSavedValue = parseFloat(res.comparison?.timeSaved || 0);
+    const energySavedValue = parseFloat(res.comparison?.energyEfficiency || res.comparison?.energySaved || 0);
+
     return {
-      concreteSaved: acc.concreteSaved + (res.comparison.concreteSaved || 0),
-      weightReduced: acc.weightReduced + (res.comparison.weightReduced || 0),
-      timeSaved: acc.timeSaved + (res.comparison.timeSaved || 0),
-      energySaved: acc.energySaved + (res.comparison.energySaved || 0),
+      concreteSaved: acc.concreteSaved + concreteSavedValue,
+      weightReduced: acc.weightReduced + weightReducedValue,
+      timeSaved: acc.timeSaved + timeSavedValue,
+      energySaved: acc.energySaved + energySavedValue,
       area: acc.area + parseFloat(curr.area),
     };
   }, { concreteSaved: 0, weightReduced: 0, timeSaved: 0, energySaved: 0, area: 0 }) || { concreteSaved: 0, weightReduced: 0, timeSaved: 0, energySaved: 0, area: 0 };
