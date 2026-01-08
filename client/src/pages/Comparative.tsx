@@ -101,7 +101,7 @@ export default function ComparativePage() {
             />
             <MetricCard
               title="Reducción de Peso"
-              value={(aggregateData.weightReduced / 1000).toFixed(1)}
+              value={aggregateData.weightReduced > 0 ? (aggregateData.weightReduced / 1000).toFixed(1) : "0.0"}
               unit="Ton"
               subtitle="Carga sísmica reducida"
               icon={Weight}
