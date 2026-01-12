@@ -86,12 +86,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTask(task: InsertTask): Promise<ScheduleTask> {
-    const [newTask] = await db.insert(scheduleTasks).values(task).returning();
+    const taskWithDates = {
+      ...task,
+      startDate: typeof task.startDate === 'string' ? new Date(task.startDate) : task.startDate,
+      endDate: typeof task.endDate === 'string' ? new Date(task.endDate) : task.endDate,
+    };
+    const [newTask] = await db.insert(scheduleTasks).values(taskWithDates).returning();
     return newTask;
   }
 
   async updateTask(id: number, task: Partial<InsertTask>): Promise<ScheduleTask> {
-    const [updated] = await db.update(scheduleTasks).set(task).where(eq(scheduleTasks.id, id)).returning();
+    const taskWithDates = {
+      ...task,
+      ...(task.startDate && { startDate: typeof task.startDate === 'string' ? new Date(task.startDate) : task.startDate }),
+      ...(task.endDate && { endDate: typeof task.endDate === 'string' ? new Date(task.endDate) : task.endDate }),
+    };
+    const [updated] = await db.update(scheduleTasks).set(taskWithDates).where(eq(scheduleTasks.id, id)).returning();
     return updated;
   }
 
