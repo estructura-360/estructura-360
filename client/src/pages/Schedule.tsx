@@ -1,0 +1,253 @@
+import { useState, useMemo } from "react";
+import { Layout } from "@/components/Layout";
+import { useProjects } from "@/hooks/use-projects";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, GripVertical, Calendar, Loader2, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { format, differenceInDays, addDays } from "date-fns";
+import { es } from "date-fns/locale";
+
+interface Task {
+  id: number;
+  projectId: number;
+  title: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  dependencies: number[] | null;
+}
+
+export default function SchedulePage() {
+  const { data: projects, isLoading: isLoadingProjects } = useProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDays, setNewTaskDays] = useState(3);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const { data: tasks, isLoading: isLoadingTasks } = useQuery<Task[]>({
+    queryKey: ['/api/projects', selectedProjectId, 'tasks'],
+    enabled: !!selectedProjectId,
+  });
+
+  const createTask = useMutation({
+    mutationFn: async (data: { title: string; days: number }) => {
+      const lastTask = tasks?.[tasks.length - 1];
+      const startDate = lastTask ? addDays(new Date(lastTask.endDate), 1) : new Date();
+      const endDate = addDays(startDate, data.days);
+      
+      return apiRequest(`/api/projects/${selectedProjectId}/tasks`, {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: parseInt(selectedProjectId),
+          title: data.title,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          status: 'pending',
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
+      setNewTaskTitle("");
+      setNewTaskDays(3);
+      setDialogOpen(false);
+      toast({ title: "Tarea creada", description: "La actividad se agregó al cronograma." });
+    },
+  });
+
+  const deleteTask = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/projects/${selectedProjectId}/tasks/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
+      toast({ title: "Tarea eliminada" });
+    },
+  });
+
+  const updateTask = useMutation({
+    mutationFn: async ({ id, startDate, endDate }: { id: number; startDate: Date; endDate: Date }) => {
+      return apiRequest(`/api/projects/${selectedProjectId}/tasks/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ startDate: startDate.toISOString(), endDate: endDate.toISOString() }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
+    },
+  });
+
+  // Calculate timeline bounds
+  const timelineBounds = useMemo(() => {
+    if (!tasks?.length) return { start: new Date(), end: addDays(new Date(), 30), totalDays: 30 };
+    
+    const dates = tasks.flatMap(t => [new Date(t.startDate), new Date(t.endDate)]);
+    const start = new Date(Math.min(...dates.map(d => d.getTime())));
+    const end = new Date(Math.max(...dates.map(d => d.getTime())));
+    const totalDays = Math.max(differenceInDays(end, start) + 1, 14);
+    
+    return { start, end, totalDays };
+  }, [tasks]);
+
+  const getTaskPosition = (task: Task) => {
+    const taskStart = new Date(task.startDate);
+    const taskEnd = new Date(task.endDate);
+    const left = (differenceInDays(taskStart, timelineBounds.start) / timelineBounds.totalDays) * 100;
+    const width = ((differenceInDays(taskEnd, taskStart) + 1) / timelineBounds.totalDays) * 100;
+    return { left: `${Math.max(0, left)}%`, width: `${Math.min(100 - left, width)}%` };
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-500';
+      case 'in_progress': return 'bg-accent';
+      default: return 'bg-primary';
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-primary">Cronograma de Obra</h1>
+          <p className="text-muted-foreground mt-2">Diagrama de Gantt dinámico para gestionar tus entregas.</p>
+        </div>
+        <div className="flex gap-3">
+          <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
+            <SelectTrigger className="w-[250px] bg-white shadow-sm border-primary/20">
+              <SelectValue placeholder={isLoadingProjects ? "Cargando..." : "Seleccionar Proyecto"} />
+            </SelectTrigger>
+            <SelectContent>
+              {projects?.map((p) => (
+                <SelectItem key={p.id} value={p.id.toString()}>
+                  {p.clientName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {selectedProjectId && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-accent hover:bg-accent/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Tarea
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Agregar Actividad</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Input
+                    placeholder="Nombre de la actividad (ej: Entrega de cemento)"
+                    value={newTaskTitle}
+                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                  />
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">Duración:</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={newTaskDays}
+                      onChange={(e) => setNewTaskDays(parseInt(e.target.value) || 1)}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-muted-foreground">días</span>
+                  </div>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => createTask.mutate({ title: newTaskTitle, days: newTaskDays })}
+                    disabled={!newTaskTitle || createTask.isPending}
+                  >
+                    {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Agregar al Cronograma
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      </div>
+
+      {!selectedProjectId ? (
+        <div className="flex flex-col items-center justify-center h-[400px] bg-muted/10 rounded-3xl border-2 border-dashed border-muted-foreground/20">
+          <Calendar className="h-16 w-16 text-muted-foreground/30 mb-4" />
+          <p className="text-lg text-muted-foreground font-medium">Selecciona un proyecto para ver el cronograma</p>
+        </div>
+      ) : isLoadingTasks ? (
+        <div className="flex items-center justify-center h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <Card className="shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-accent" />
+              Diagrama de Gantt
+            </CardTitle>
+            <CardDescription>
+              Arrastra las tareas para reajustar fechas automáticamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Timeline Header */}
+            <div className="flex border-b pb-2 mb-4">
+              <div className="w-48 shrink-0 font-medium text-sm text-muted-foreground">Actividad</div>
+              <div className="flex-1 flex justify-between text-xs text-muted-foreground">
+                {Array.from({ length: Math.min(timelineBounds.totalDays, 14) }).map((_, i) => (
+                  <span key={i} className="text-center">
+                    {format(addDays(timelineBounds.start, i * Math.ceil(timelineBounds.totalDays / 14)), 'd MMM', { locale: es })}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Tasks */}
+            <div className="space-y-3">
+              {tasks?.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  No hay tareas programadas. Agrega la primera actividad.
+                </div>
+              ) : (
+                tasks?.map((task) => {
+                  const pos = getTaskPosition(task);
+                  return (
+                    <div key={task.id} className="flex items-center group">
+                      <div className="w-48 shrink-0 flex items-center gap-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab" />
+                        <span className="text-sm font-medium truncate">{task.title}</span>
+                      </div>
+                      <div className="flex-1 relative h-8">
+                        <div
+                          className={`absolute h-full rounded-md ${getStatusColor(task.status)} shadow-sm flex items-center px-3 text-white text-xs font-medium cursor-move transition-all`}
+                          style={{ left: pos.left, width: pos.width, minWidth: '60px' }}
+                        >
+                          {differenceInDays(new Date(task.endDate), new Date(task.startDate)) + 1}d
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive/50 hover:text-destructive"
+                        onClick={() => deleteTask.mutate(task.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </Layout>
+  );
+}

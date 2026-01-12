@@ -152,6 +152,38 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // Schedule Tasks
+  app.get('/api/projects/:projectId/tasks', async (req, res) => {
+    const tasks = await storage.getTasksByProject(Number(req.params.projectId));
+    res.json(tasks);
+  });
+
+  app.post('/api/projects/:projectId/tasks', async (req, res) => {
+    const task = await storage.createTask(req.body);
+    res.status(201).json(task);
+  });
+
+  app.patch('/api/projects/:projectId/tasks/:id', async (req, res) => {
+    const task = await storage.updateTask(Number(req.params.id), req.body);
+    res.json(task);
+  });
+
+  app.delete('/api/projects/:projectId/tasks/:id', async (req, res) => {
+    await storage.deleteTask(Number(req.params.id));
+    res.status(204).send();
+  });
+
+  // Construction Logs
+  app.get('/api/projects/:projectId/logs', async (req, res) => {
+    const logs = await storage.getLogsByProject(Number(req.params.projectId));
+    res.json(logs);
+  });
+
+  app.post('/api/projects/:projectId/logs', async (req, res) => {
+    const log = await storage.createLog(req.body);
+    res.status(201).json(log);
+  });
+
   // Seed Data
   const projects = await storage.getProjects();
   if (projects.length === 0) {

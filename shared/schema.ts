@@ -8,9 +8,18 @@ import { z } from "zod";
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   clientName: text("client_name").notNull(),
-  profitMargin: decimal("profit_margin").default("20.0"), // Percentage
-  laborCostPerM2: decimal("labor_cost_per_m2").default("0.0"), // Cost per m2 for labor
+  profitMargin: decimal("profit_margin").default("20.0"),
+  laborCostPerM2: decimal("labor_cost_per_m2").default("0.0"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const calculations = pgTable("calculations", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull(),
+  type: text("type").notNull(),
+  area: decimal("area").notNull(),
+  specs: jsonb("specs").notNull(),
+  results: jsonb("results").notNull(),
 });
 
 export const scheduleTasks = pgTable("schedule_tasks", {
@@ -19,8 +28,8 @@ export const scheduleTasks = pgTable("schedule_tasks", {
   title: text("title").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
-  dependencies: integer("dependencies").array(), // IDs of tasks this depends on
-  status: text("status").default("pending"), // 'pending' | 'in_progress' | 'completed'
+  dependencies: integer("dependencies").array(),
+  status: text("status").default("pending"),
 });
 
 export const constructionLogs = pgTable("construction_logs", {
@@ -33,15 +42,18 @@ export const constructionLogs = pgTable("construction_logs", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
-export const calculations = pgTable("calculations", {
-// ... existing code ...
-});
-
 // === RELATIONS ===
 export const projectsRelations = relations(projects, ({ many }) => ({
   calculations: many(calculations),
   tasks: many(scheduleTasks),
   logs: many(constructionLogs),
+}));
+
+export const calculationsRelations = relations(calculations, ({ one }) => ({
+  project: one(projects, {
+    fields: [calculations.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const scheduleTasksRelations = relations(scheduleTasks, ({ one }) => ({
@@ -58,8 +70,6 @@ export const constructionLogsRelations = relations(constructionLogs, ({ one }) =
   }),
 }));
 
-// ... existing code ...
-
 // === BASE SCHEMAS ===
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true });
 export const insertCalculationSchema = createInsertSchema(calculations).omit({ id: true });
@@ -67,7 +77,6 @@ export const insertTaskSchema = createInsertSchema(scheduleTasks).omit({ id: tru
 export const insertLogSchema = createInsertSchema(constructionLogs).omit({ id: true, timestamp: true });
 
 // === EXPLICIT API CONTRACT TYPES ===
-
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Calculation = typeof calculations.$inferSelect;
