@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Share2, Trash2, FileDown, Loader2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { api, type Calculation } from "@shared/routes";
+import { api } from "@shared/routes";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -112,11 +112,22 @@ export default function BudgetPage() {
     doc.text("Este presupuesto tiene una vigencia de 15 días naturales.", 15, 280);
     doc.text("Generado automáticamente por Estructura 360 Engineering.", 15, 285);
 
-    doc.save(`Presupuesto_${projectDetails.clientName.replace(/\s+/g, '_')}.pdf`);
+    // Open PDF in new window (works better on mobile/iPad)
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+    
+    // Also try to trigger download
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = `Presupuesto_${projectDetails.clientName.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
     toast({
       title: "PDF Generado",
-      description: "El presupuesto se ha descargado correctamente.",
+      description: "El presupuesto se abrió en una nueva pestaña. También puedes guardarlo desde ahí.",
     });
   };
 
