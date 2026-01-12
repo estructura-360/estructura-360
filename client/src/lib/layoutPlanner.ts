@@ -85,7 +85,11 @@ function analyzeOrientation(joistDirection: number, perpendicular: number): Orie
   };
 }
 
-export function calculateLayout(length: number, width: number): LayoutResult {
+export function calculateLayout(lengthInput: number, widthInput: number): LayoutResult {
+  // Ensure we have numbers
+  const length = Number(lengthInput) || 1;
+  const width = Number(widthInput) || 1;
+  
   // Analyze both orientations
   const horizontalAnalysis = analyzeOrientation(length, width); // Joists run along length
   const verticalAnalysis = analyzeOrientation(width, length); // Joists run along width

@@ -9,7 +9,10 @@ interface SlabLayoutDiagramProps {
   width: number;
 }
 
-export function SlabLayoutDiagram({ layout, length, width }: SlabLayoutDiagramProps) {
+export function SlabLayoutDiagram({ layout, length: lengthProp, width: widthProp }: SlabLayoutDiagramProps) {
+  const length = Number(lengthProp) || 1;
+  const width = Number(widthProp) || 1;
+  
   const svgWidth = 400;
   const svgHeight = 300;
   const padding = 40;
