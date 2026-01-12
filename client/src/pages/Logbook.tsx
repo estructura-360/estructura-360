@@ -90,10 +90,7 @@ export default function LogbookPage() {
         return offlineLog;
       } else {
         // Online - save directly to server
-        return apiRequest(`/api/projects/${selectedProjectId}/logs`, {
-          method: 'POST',
-          body: JSON.stringify(logData),
-        });
+        return apiRequest('POST', `/api/projects/${selectedProjectId}/logs`, logData);
       }
     },
     onSuccess: async (result) => {

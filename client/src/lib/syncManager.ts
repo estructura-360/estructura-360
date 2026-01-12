@@ -53,11 +53,14 @@ export async function syncPendingMutations(): Promise<{ success: number; failed:
         const response = await fetch(mutation.endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mutation.data)
+          body: JSON.stringify(mutation.data),
+          credentials: 'include'
         });
         
         if (response.ok) {
           await removeMutation(mutation.id);
+          // Mark the offline record as synced
+          await markOfflineRecordSynced(mutation.type, mutation.data);
           success++;
         } else {
           failed++;
@@ -78,6 +81,34 @@ export async function syncPendingMutations(): Promise<{ success: number; failed:
   await updatePendingCount();
   
   return { success, failed };
+}
+
+// Mark offline records as synced after successful upload
+async function markOfflineRecordSynced(type: string, data: any): Promise<void> {
+  try {
+    const db = await import('./offlineStorage').then(m => m.initOfflineDB());
+    const storeName = type === 'log' ? 'offlineLogs' : 'offlineTasks';
+    
+    const transaction = db.transaction([storeName], 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('projectId');
+    const request = index.openCursor(data.projectId);
+    
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest).result;
+      if (cursor) {
+        const record = cursor.value;
+        // Match by timestamp and content
+        if (record.timestamp === data.timestamp && !record.synced) {
+          record.synced = true;
+          cursor.update(record);
+        }
+        cursor.continue();
+      }
+    };
+  } catch (e) {
+    console.error('Error marking record as synced:', e);
+  }
 }
 
 // Initialize sync manager

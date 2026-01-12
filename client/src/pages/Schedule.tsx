@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { useProjects } from "@/hooks/use-projects";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -8,19 +8,57 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, GripVertical, Calendar, Loader2, Trash2 } from "lucide-react";
+import { Plus, GripVertical, Calendar, Loader2, Trash2, WifiOff, CloudOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays, addDays } from "date-fns";
 import { es } from "date-fns/locale";
+import { useOfflineStatus } from "@/hooks/use-offline";
+import { addToSyncQueue, initOfflineDB, generateOfflineId } from "@/lib/offlineStorage";
 
 interface Task {
-  id: number;
+  id: number | string;
   projectId: number;
   title: string;
   startDate: string;
   endDate: string;
   status: string;
   dependencies: number[] | null;
+  isOffline?: boolean;
+}
+
+// Offline tasks storage in IndexedDB
+async function saveOfflineTask(task: Omit<Task, 'id' | 'isOffline'>): Promise<Task> {
+  const db = await initOfflineDB();
+  const offlineTask: Task = {
+    ...task,
+    id: generateOfflineId(),
+    isOffline: true
+  };
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['offlineTasks'], 'readwrite');
+    const store = transaction.objectStore('offlineTasks');
+    const request = store.add({ ...offlineTask, synced: false });
+    
+    request.onsuccess = () => resolve(offlineTask);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getOfflineTasks(projectId: number): Promise<Task[]> {
+  const db = await initOfflineDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['offlineTasks'], 'readonly');
+    const store = transaction.objectStore('offlineTasks');
+    const index = store.index('projectId');
+    const request = index.getAll(projectId);
+    
+    request.onsuccess = () => {
+      const tasks = request.result.filter((t: any) => !t.synced).map((t: any) => ({ ...t, isOffline: true }));
+      resolve(tasks);
+    };
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export default function SchedulePage() {
@@ -29,12 +67,34 @@ export default function SchedulePage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDays, setNewTaskDays] = useState(3);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [offlineTasks, setOfflineTasks] = useState<Task[]>([]);
   const { toast } = useToast();
+  const { isOffline } = useOfflineStatus();
 
-  const { data: tasks, isLoading: isLoadingTasks } = useQuery<Task[]>({
+  const { data: serverTasks, isLoading: isLoadingTasks } = useQuery<Task[]>({
     queryKey: ['/api/projects', selectedProjectId, 'tasks'],
-    enabled: !!selectedProjectId,
+    enabled: !!selectedProjectId && !isOffline,
   });
+
+  // Load offline tasks when project changes
+  useEffect(() => {
+    async function loadOfflineTasks() {
+      if (selectedProjectId) {
+        try {
+          const offline = await getOfflineTasks(parseInt(selectedProjectId));
+          setOfflineTasks(offline);
+        } catch (e) {
+          console.error('Error loading offline tasks:', e);
+        }
+      }
+    }
+    loadOfflineTasks();
+  }, [selectedProjectId]);
+
+  // Combine server and offline tasks
+  const tasks = [...(serverTasks || []), ...offlineTasks].sort(
+    (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+  );
 
   const createTask = useMutation({
     mutationFn: async (data: { title: string; days: number }) => {
@@ -42,28 +102,85 @@ export default function SchedulePage() {
       const startDate = lastTask ? addDays(new Date(lastTask.endDate), 1) : new Date();
       const endDate = addDays(startDate, data.days);
       
-      return apiRequest(`/api/projects/${selectedProjectId}/tasks`, {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: parseInt(selectedProjectId),
-          title: data.title,
-          startDate: startDate.toISOString(),
-          endDate: endDate.toISOString(),
-          status: 'pending',
-        }),
-      });
+      const taskData = {
+        projectId: parseInt(selectedProjectId),
+        title: data.title,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        status: 'pending',
+        dependencies: null
+      };
+
+      if (isOffline) {
+        const offlineTask = await saveOfflineTask(taskData);
+        
+        await addToSyncQueue({
+          type: 'task',
+          action: 'create',
+          endpoint: `/api/projects/${selectedProjectId}/tasks`,
+          data: taskData
+        });
+        
+        return offlineTask;
+      } else {
+        return apiRequest('POST', `/api/projects/${selectedProjectId}/tasks`, taskData);
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
+    onSuccess: async () => {
+      if (isOffline) {
+        const offline = await getOfflineTasks(parseInt(selectedProjectId));
+        setOfflineTasks(offline);
+        toast({ 
+          title: "Guardado localmente", 
+          description: "Se sincronizará automáticamente cuando haya conexión." 
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
+        toast({ title: "Tarea creada", description: "La actividad se agregó al cronograma." });
+      }
       setNewTaskTitle("");
       setNewTaskDays(3);
       setDialogOpen(false);
-      toast({ title: "Tarea creada", description: "La actividad se agregó al cronograma." });
     },
+    onError: async () => {
+      // If online request fails, save offline
+      const lastTask = tasks?.[tasks.length - 1];
+      const startDate = lastTask ? addDays(new Date(lastTask.endDate), 1) : new Date();
+      const endDate = addDays(startDate, newTaskDays);
+      
+      const taskData = {
+        projectId: parseInt(selectedProjectId),
+        title: newTaskTitle,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        status: 'pending',
+        dependencies: null
+      };
+      
+      await saveOfflineTask(taskData);
+      await addToSyncQueue({
+        type: 'task',
+        action: 'create',
+        endpoint: `/api/projects/${selectedProjectId}/tasks`,
+        data: taskData
+      });
+      
+      const offline = await getOfflineTasks(parseInt(selectedProjectId));
+      setOfflineTasks(offline);
+      
+      setNewTaskTitle("");
+      setNewTaskDays(3);
+      setDialogOpen(false);
+      
+      toast({ 
+        title: "Guardado localmente", 
+        description: "No se pudo conectar. Se sincronizará cuando haya conexión." 
+      });
+    }
   });
 
   const deleteTask = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/projects/${selectedProjectId}/tasks/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: number) => apiRequest('DELETE', `/api/projects/${selectedProjectId}/tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', selectedProjectId, 'tasks'] });
       toast({ title: "Tarea eliminada" });
@@ -72,9 +189,9 @@ export default function SchedulePage() {
 
   const updateTask = useMutation({
     mutationFn: async ({ id, startDate, endDate }: { id: number; startDate: Date; endDate: Date }) => {
-      return apiRequest(`/api/projects/${selectedProjectId}/tasks/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ startDate: startDate.toISOString(), endDate: endDate.toISOString() }),
+      return apiRequest('PATCH', `/api/projects/${selectedProjectId}/tasks/${id}`, { 
+        startDate: startDate.toISOString(), 
+        endDate: endDate.toISOString() 
       });
     },
     onSuccess: () => {
@@ -102,7 +219,8 @@ export default function SchedulePage() {
     return { left: `${Math.max(0, left)}%`, width: `${Math.min(100 - left, width)}%` };
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, isOffline?: boolean) => {
+    if (isOffline) return 'bg-amber-500';
     switch (status) {
       case 'completed': return 'bg-green-500';
       case 'in_progress': return 'bg-accent';
@@ -115,7 +233,15 @@ export default function SchedulePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary">Cronograma de Obra</h1>
-          <p className="text-muted-foreground mt-2">Diagrama de Gantt dinámico para gestionar tus entregas.</p>
+          <p className="text-muted-foreground mt-2">
+            Diagrama de Gantt dinámico para gestionar tus entregas.
+            {isOffline && (
+              <span className="ml-2 inline-flex items-center gap-1 text-amber-600">
+                <WifiOff className="h-4 w-4" />
+                Modo sin conexión
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex gap-3">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
@@ -141,7 +267,14 @@ export default function SchedulePage() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Agregar Actividad</DialogTitle>
+                  <DialogTitle className="flex items-center gap-2">
+                    Agregar Actividad
+                    {isOffline && (
+                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-normal">
+                        Sin conexión
+                      </span>
+                    )}
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <Input
@@ -167,7 +300,7 @@ export default function SchedulePage() {
                     disabled={!newTaskTitle || createTask.isPending}
                   >
                     {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Agregar al Cronograma
+                    {isOffline ? "Guardar Localmente" : "Agregar al Cronograma"}
                   </Button>
                 </div>
               </DialogContent>
@@ -181,7 +314,7 @@ export default function SchedulePage() {
           <Calendar className="h-16 w-16 text-muted-foreground/30 mb-4" />
           <p className="text-lg text-muted-foreground font-medium">Selecciona un proyecto para ver el cronograma</p>
         </div>
-      ) : isLoadingTasks ? (
+      ) : isLoadingTasks && !isOffline ? (
         <div className="flex items-center justify-center h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -222,24 +355,31 @@ export default function SchedulePage() {
                     <div key={task.id} className="flex items-center group">
                       <div className="w-48 shrink-0 flex items-center gap-2">
                         <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab" />
-                        <span className="text-sm font-medium truncate">{task.title}</span>
+                        <span className="text-sm font-medium truncate flex items-center gap-1">
+                          {task.title}
+                          {task.isOffline && (
+                            <CloudOff className="h-3 w-3 text-amber-500" />
+                          )}
+                        </span>
                       </div>
                       <div className="flex-1 relative h-8">
                         <div
-                          className={`absolute h-full rounded-md ${getStatusColor(task.status)} shadow-sm flex items-center px-3 text-white text-xs font-medium cursor-move transition-all`}
+                          className={`absolute h-full rounded-md ${getStatusColor(task.status, task.isOffline)} shadow-sm flex items-center px-3 text-white text-xs font-medium cursor-move transition-all`}
                           style={{ left: pos.left, width: pos.width, minWidth: '60px' }}
                         >
                           {differenceInDays(new Date(task.endDate), new Date(task.startDate)) + 1}d
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive/50 hover:text-destructive"
-                        onClick={() => deleteTask.mutate(task.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!task.isOffline && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive/50 hover:text-destructive"
+                          onClick={() => deleteTask.mutate(task.id as number)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })
