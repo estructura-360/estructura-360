@@ -38,6 +38,7 @@ interface OrientationAnalysis {
   selectedBeamLength: number;
   waste: number;
   wastePercentage: number;
+  piecesPerJoist?: number;
 }
 
 function analyzeOrientation(joistDirection: number, perpendicular: number): OrientationAnalysis {
@@ -45,14 +46,33 @@ function analyzeOrientation(joistDirection: number, perpendicular: number): Orie
   const joistCount = Math.ceil(perpendicular / JOIST_SPACING) + 1;
   const joistLength = joistDirection;
   
-  // Find best fitting standard length
-  const selectedBeamLength = STANDARD_LENGTHS.find(len => len >= joistLength) || 
-    STANDARD_LENGTHS[STANDARD_LENGTHS.length - 1];
+  // For spans > 6m, we need multiple pieces with lap splice
+  const maxStandardLength = STANDARD_LENGTHS[STANDARD_LENGTHS.length - 1]; // 6m
+  const LAP_SPLICE = 0.30; // 30cm overlap for splicing
   
-  // Calculate waste per joist
-  const wastePerJoist = Math.max(0, selectedBeamLength - joistLength);
+  let selectedBeamLength: number;
+  let piecesPerJoist: number;
+  let totalMaterialPerJoist: number;
+  
+  if (joistLength <= maxStandardLength) {
+    // Single piece - find best fitting standard length
+    selectedBeamLength = STANDARD_LENGTHS.find(len => len >= joistLength) || maxStandardLength;
+    piecesPerJoist = 1;
+    totalMaterialPerJoist = selectedBeamLength;
+  } else {
+    // Multiple pieces needed - use largest standard pieces with splicing
+    selectedBeamLength = maxStandardLength;
+    // Calculate pieces needed: each additional piece needs lap splice overlap
+    piecesPerJoist = Math.ceil(joistLength / (maxStandardLength - LAP_SPLICE));
+    // Actual material used includes the full length of each piece
+    totalMaterialPerJoist = selectedBeamLength * piecesPerJoist;
+  }
+  
+  // Calculate waste
+  const effectiveCoverage = joistLength;
+  const wastePerJoist = totalMaterialPerJoist - effectiveCoverage;
   const totalWaste = wastePerJoist * joistCount;
-  const totalMaterial = selectedBeamLength * joistCount;
+  const totalMaterial = totalMaterialPerJoist * joistCount;
   const wastePercentage = totalMaterial > 0 ? (totalWaste / totalMaterial) * 100 : 0;
   
   return {
@@ -60,7 +80,8 @@ function analyzeOrientation(joistDirection: number, perpendicular: number): Orie
     joistLength,
     selectedBeamLength,
     waste: totalWaste,
-    wastePercentage
+    wastePercentage,
+    piecesPerJoist
   };
 }
 
@@ -103,7 +124,8 @@ export function calculateLayout(length: number, width: number): LayoutResult {
   }
   
   if (analysis.joistLength > 6) {
-    recommendations.push("Para claros mayores a 6m, considere apoyos intermedios o viguetas pretensadas especiales");
+    const pieces = analysis.piecesPerJoist || 1;
+    recommendations.push(`Claro > 6m requiere ${pieces} tramos de vigueta con traslape. Considere apoyos intermedios para mayor seguridad.`);
   }
   
   if (analysis.joistLength < 3) {
