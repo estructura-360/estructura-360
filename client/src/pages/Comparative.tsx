@@ -191,10 +191,10 @@ export default function ComparativePage() {
     <Layout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary" data-testid="text-page-title">Análisis Comparativo</h1>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary" data-testid="text-page-title">Análisis Comparativo</h1>
           <p className="text-muted-foreground mt-2">Por qué Vigueta y Bovedilla es la mejor elección para tu proyecto</p>
         </div>
-        <div className="w-[300px]">
+        <div className="w-full sm:w-[300px]">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
             <SelectTrigger className="w-full bg-white shadow-sm border-primary/20" data-testid="select-project">
               <SelectValue placeholder={isLoadingProjects ? "Cargando..." : "Seleccionar Proyecto"} />
@@ -211,17 +211,18 @@ export default function ComparativePage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
-          <TabsTrigger value="overview" className="rounded-lg py-2.5 text-sm" data-testid="tab-overview">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl gap-1">
+          <TabsTrigger value="overview" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-overview">
             Resumen
           </TabsTrigger>
-          <TabsTrigger value="technical" className="rounded-lg py-2.5 text-sm" data-testid="tab-technical">
+          <TabsTrigger value="technical" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-technical">
             Técnico
           </TabsTrigger>
-          <TabsTrigger value="myths" className="rounded-lg py-2.5 text-sm" data-testid="tab-myths">
-            Mitos vs Realidad
+          <TabsTrigger value="myths" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-myths">
+            <span className="hidden sm:inline">Mitos vs Realidad</span>
+            <span className="sm:hidden">Mitos</span>
           </TabsTrigger>
-          <TabsTrigger value="benefits" className="rounded-lg py-2.5 text-sm" data-testid="tab-benefits">
+          <TabsTrigger value="benefits" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-benefits">
             Beneficios
           </TabsTrigger>
         </TabsList>

@@ -232,7 +232,7 @@ export default function SchedulePage() {
     <Layout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary">Cronograma de Obra</h1>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary">Cronograma de Obra</h1>
           <p className="text-muted-foreground mt-2">
             Diagrama de Gantt dinámico para gestionar tus entregas.
             {isOffline && (
@@ -243,9 +243,9 @@ export default function SchedulePage() {
             )}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
-            <SelectTrigger className="w-[250px] bg-white shadow-sm border-primary/20">
+            <SelectTrigger className="w-full sm:w-[250px] bg-white shadow-sm border-primary/20">
               <SelectValue placeholder={isLoadingProjects ? "Cargando..." : "Seleccionar Proyecto"} />
             </SelectTrigger>
             <SelectContent>

@@ -162,10 +162,10 @@ _Generado por Estructura 360 Engineering_
     <Layout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary">Generador de Presupuestos</h1>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary">Generador de Presupuestos</h1>
           <p className="text-muted-foreground mt-2">Gestiona costos y exporta cotizaciones formales.</p>
         </div>
-        <div className="w-[300px]">
+        <div className="w-full sm:w-[300px]">
           <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={isLoadingProjects}>
             <SelectTrigger className="w-full bg-white shadow-sm border-primary/20">
               <SelectValue placeholder={isLoadingProjects ? "Cargando..." : "Seleccionar Proyecto"} />
@@ -191,7 +191,7 @@ _Generado por Estructura 360 Engineering_
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <Card className="lg:col-span-2 border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Desglose de Materiales</CardTitle>

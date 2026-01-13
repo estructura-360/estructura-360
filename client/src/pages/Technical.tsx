@@ -185,27 +185,31 @@ export default function TechnicalPage() {
   return (
     <Layout>
       <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold text-primary" data-testid="text-page-title">Centro de Conocimiento</h1>
+        <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary" data-testid="text-page-title">Centro de Conocimiento</h1>
         <p className="text-muted-foreground mt-2">Todo lo que necesitas saber sobre el sistema Vigueta y Bovedilla</p>
       </div>
 
       <Tabs defaultValue="system" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl">
-          <TabsTrigger value="system" className="rounded-lg py-2.5 text-sm" data-testid="tab-system">
-            <Layers className="h-4 w-4 mr-2" />
-            El Sistema
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 bg-muted/50 rounded-xl gap-1">
+          <TabsTrigger value="system" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-system">
+            <Layers className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">El Sistema</span>
+            <span className="sm:hidden">Sistema</span>
           </TabsTrigger>
-          <TabsTrigger value="catalog" className="rounded-lg py-2.5 text-sm" data-testid="tab-catalog">
-            <Ruler className="h-4 w-4 mr-2" />
-            Catálogo
+          <TabsTrigger value="catalog" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-catalog">
+            <Ruler className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Catálogo</span>
+            <span className="sm:hidden">Catálogo</span>
           </TabsTrigger>
-          <TabsTrigger value="installation" className="rounded-lg py-2.5 text-sm" data-testid="tab-installation">
-            <Hammer className="h-4 w-4 mr-2" />
-            Instalación
+          <TabsTrigger value="installation" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-installation">
+            <Hammer className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Instalación</span>
+            <span className="sm:hidden">Instalar</span>
           </TabsTrigger>
-          <TabsTrigger value="faq" className="rounded-lg py-2.5 text-sm" data-testid="tab-faq">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Preguntas
+          <TabsTrigger value="faq" className="rounded-lg py-2 sm:py-2.5 text-xs sm:text-sm" data-testid="tab-faq">
+            <BookOpen className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Preguntas</span>
+            <span className="sm:hidden">FAQ</span>
           </TabsTrigger>
         </TabsList>
 
@@ -225,8 +229,8 @@ export default function TechnicalPage() {
                 <strong className="text-primary"> capa de compresión</strong> de concreto armado.
               </p>
               
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="p-6 bg-white rounded-xl border shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                <div className="p-4 sm:p-6 bg-white rounded-xl border shadow-sm">
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
                     <ShieldCheck className="h-6 w-6 text-blue-600" />
                   </div>
@@ -262,7 +266,7 @@ export default function TechnicalPage() {
             </CardContent>
           </Card>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {components.map((comp, index) => (
               <Card key={index} className="overflow-hidden">
                 <div className="h-2 bg-gradient-to-r from-primary to-accent" />

@@ -56,7 +56,7 @@ export default function AboutPage() {
   return (
     <Layout>
       <div className="space-y-16 pb-12">
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-white p-8 md:p-12">
+        <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary via-primary/95 to-primary/80 text-white p-4 sm:p-6 md:p-8 lg:p-12">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOCAxOC04LjA1OSAxOC0xOC04LjA1OS0xOC0xOC0xOHoiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9Ii4wNSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9nPjwvc3ZnPg==')] opacity-50" />
           
           <div className="relative max-w-4xl mx-auto text-center space-y-6">
@@ -64,11 +64,11 @@ export default function AboutPage() {
               Tecnología Construtech
             </Badge>
             
-            <h1 className="text-4xl md:text-5xl font-display font-bold leading-tight">
-              Construye Mejor, Más Rápido<br />y Más Eficiente
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-display font-bold leading-tight">
+              Construye Mejor, Más Rápido<br className="hidden sm:block" /> y Más Eficiente
             </h1>
             
-            <p className="text-xl text-white/80 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
               ESTRUCTURA 360 es la plataforma profesional que digitaliza la construcción con sistemas 
               de vigueta y bovedilla. Herramientas de ingeniería al alcance de todos.
             </p>
@@ -89,15 +89,15 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((stat, index) => (
             <Card key={index} className="text-center border-0 shadow-lg bg-gradient-to-br from-white to-muted/20">
               <CardContent className="pt-6">
                 <div className="w-12 h-12 mx-auto mb-3 bg-accent/10 rounded-xl flex items-center justify-center">
                   <stat.icon className="h-6 w-6 text-accent" />
                 </div>
-                <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+                <div className="text-2xl sm:text-3xl font-bold text-primary mb-1">{stat.value}</div>
+                <div className="text-xs sm:text-sm text-muted-foreground">{stat.label}</div>
               </CardContent>
             </Card>
           ))}
@@ -105,7 +105,7 @@ export default function AboutPage() {
 
         <section className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-display font-bold text-primary mb-3">
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-primary mb-3">
               ¿Por qué Vigueta y Bovedilla?
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -174,9 +174,9 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="bg-muted/30 -mx-4 md:-mx-8 px-4 md:px-8 py-12 rounded-3xl">
+        <section className="bg-muted/30 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-8 sm:py-10 md:py-12 rounded-2xl sm:rounded-3xl">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-display font-bold text-primary mb-3">
+            <h2 className="text-2xl sm:text-3xl font-display font-bold text-primary mb-3">
               Herramientas Profesionales
             </h2>
             <p className="text-muted-foreground text-lg">
@@ -184,7 +184,7 @@ export default function AboutPage() {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
             {features.map((feature, index) => (
               <Link key={index} href={feature.link}>
                 <Card className="h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group">
@@ -202,7 +202,7 @@ export default function AboutPage() {
         </section>
 
         <section className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
             <Card className="border-primary/10 shadow-md">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -240,12 +240,12 @@ export default function AboutPage() {
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Heart className="h-6 w-6 text-accent" />
-            <h2 className="text-2xl font-display font-bold text-primary">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-primary">
               El Corazón del Proyecto
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="flex gap-4 p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200">
               <Zap className="h-8 w-8 text-blue-600 shrink-0" />
               <div>
@@ -292,9 +292,9 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="bg-gradient-to-r from-primary to-primary/90 text-white rounded-3xl p-8 md:p-12">
+        <section className="bg-gradient-to-r from-primary to-primary/90 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 lg:p-12">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-3xl font-display font-bold">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-display font-bold">
               ¿Listo para Modernizar tu Construcción?
             </h2>
             <p className="text-white/80 text-lg">
@@ -303,7 +303,7 @@ export default function AboutPage() {
             </p>
             
             <div className="bg-white/10 rounded-2xl p-6 border border-white/20">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 text-sm">
                 {benefits.map((benefit, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-accent shrink-0 mt-0.5" />

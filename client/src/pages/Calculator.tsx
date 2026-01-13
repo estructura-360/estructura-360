@@ -184,11 +184,11 @@ export default function CalculatorPage() {
     <Layout>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-display font-bold text-primary">Calculadora de Materiales</h1>
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-primary">Calculadora de Materiales</h1>
           <p className="text-muted-foreground mt-2">Configura los parámetros técnicos y genera planos automáticos.</p>
         </div>
 
-        <Card className="min-w-[300px] border-l-4 border-l-accent shadow-md">
+        <Card className="w-full md:min-w-[300px] md:w-auto border-l-4 border-l-accent shadow-md">
           <CardContent className="pt-6">
             <div className="flex flex-col gap-2">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Proyecto Activo</Label>
@@ -269,17 +269,19 @@ export default function CalculatorPage() {
       </div>
 
       <Tabs defaultValue="slab" className="max-w-4xl mx-auto">
-        <TabsList className="grid w-full grid-cols-2 mb-8 h-auto p-1 bg-muted/50 rounded-2xl">
-          <TabsTrigger value="slab" className="rounded-xl py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">
-            <div className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 mb-6 sm:mb-8 h-auto p-1 bg-muted/50 rounded-xl sm:rounded-2xl">
+          <TabsTrigger value="slab" className="rounded-lg sm:rounded-xl py-2 sm:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Layers className="w-4 h-4" />
-              <span className="font-semibold">Losa (Vigueta y Bovedilla)</span>
+              <span className="font-semibold text-xs sm:text-sm">Losa</span>
+              <span className="hidden sm:inline font-semibold text-sm">(Vigueta y Bovedilla)</span>
             </div>
           </TabsTrigger>
-          <TabsTrigger value="wall" className="rounded-xl py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">
-            <div className="flex items-center gap-2">
+          <TabsTrigger value="wall" className="rounded-lg sm:rounded-xl py-2 sm:py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-300">
+            <div className="flex items-center gap-1 sm:gap-2">
               <BrickWall className="w-4 h-4" />
-              <span className="font-semibold">Muro (Panel Estructural)</span>
+              <span className="font-semibold text-xs sm:text-sm">Muro</span>
+              <span className="hidden sm:inline font-semibold text-sm">(Panel Estructural)</span>
             </div>
           </TabsTrigger>
         </TabsList>
@@ -364,27 +366,27 @@ export default function CalculatorPage() {
                         Estimación de Ahorro vs. Losa Tradicional
                       </div>
                       
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-white/80 rounded-xl border border-green-200">
-                          <div className="text-lg font-bold text-green-600">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+                        <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-green-200">
+                          <div className="text-sm sm:text-lg font-bold text-green-600">
                             -{((slabForm.watch("length") * slabForm.watch("width")) * 0.07).toFixed(1)}m³
                           </div>
                           <div className="text-xs text-muted-foreground">Concreto</div>
                         </div>
-                        <div className="text-center p-3 bg-white/80 rounded-xl border border-blue-200">
-                          <div className="text-lg font-bold text-blue-600">
+                        <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-blue-200">
+                          <div className="text-sm sm:text-lg font-bold text-blue-600">
                             -{((slabForm.watch("length") * slabForm.watch("width")) * 120 / 1000).toFixed(1)}ton
                           </div>
                           <div className="text-xs text-muted-foreground">Peso</div>
                         </div>
-                        <div className="text-center p-3 bg-white/80 rounded-xl border border-purple-200">
-                          <div className="text-lg font-bold text-purple-600">
+                        <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-purple-200">
+                          <div className="text-sm sm:text-lg font-bold text-purple-600">
                             -{Math.ceil((slabForm.watch("length") * slabForm.watch("width")) / 20)} días
                           </div>
                           <div className="text-xs text-muted-foreground">Tiempo</div>
                         </div>
-                        <div className="text-center p-3 bg-white/80 rounded-xl border border-orange-200">
-                          <div className="text-lg font-bold text-orange-600">
+                        <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-orange-200">
+                          <div className="text-sm sm:text-lg font-bold text-orange-600">
                             $-{((slabForm.watch("length") * slabForm.watch("width")) * 85).toLocaleString()}
                           </div>
                           <div className="text-xs text-muted-foreground">Costo Est.</div>
@@ -397,7 +399,7 @@ export default function CalculatorPage() {
                     </div>
                   )}
 
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
                     <FormField
                       control={slabForm.control}
                       name="beamDepth"
@@ -547,7 +549,7 @@ export default function CalculatorPage() {
                     )}
                   />
 
-                  <div className="grid md:grid-cols-2 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
                     <FormField
                       control={wallForm.control}
                       name="length"
