@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Info, Target, Zap, Shield, Heart, Leaf, ArrowRight, CheckCircle2, TrendingDown, Clock, Weight, Building, Users, Award, Calculator, FileText, BarChart3, Calendar } from "lucide-react";
 
-import heroImage from "@assets/stock_images/modern_construction__c2e16b69.jpg";
+import heroImage from "@assets/IMG_6247_1768590612991.png";
 import blueprintImage from "@assets/stock_images/construction_enginee_10031660.jpg";
 import workerImage from "@assets/stock_images/professional_constru_4a783fb5.jpg";
 import houseImage from "@assets/stock_images/modern_house_constru_639f58c6.jpg";
@@ -63,11 +63,11 @@ export default function AboutPage() {
       <div className="space-y-16 pb-12">
         <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl text-white">
           <div className="absolute inset-0">
-            <img src={heroImage} alt="Construcción moderna" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/85 to-primary/75" />
+            <img src={heroImage} alt="Equipo de construcción ESTRUCTURA 360" className="w-full h-full object-cover object-top" />
+            <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/70 to-primary/40" />
           </div>
           
-          <div className="relative max-w-4xl mx-auto text-center space-y-6 p-4 sm:p-6 md:p-8 lg:p-12">
+          <div className="relative max-w-4xl mx-auto text-center space-y-6 p-4 sm:p-6 md:p-8 lg:p-12 pt-32 sm:pt-40 md:pt-48">
             <Badge variant="secondary" className="bg-white/20 text-white border-0 hover:bg-white/30">
               Tecnología Construtech
             </Badge>
