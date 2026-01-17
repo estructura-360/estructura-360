@@ -8,47 +8,45 @@
   --font-body: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
 
-  /* Verde Bosque Oscuro (#2E7D32) - Primary */
-  --primary: 122 46% 34%;
-  --primary-foreground: 0 0% 100%;
+  /* Navy Blue (#0f172a) - Primary */
+  --primary: 222 47% 11%;
+  --primary-foreground: 210 40% 98%;
 
-  /* Cian Suave (#00ACC1) - Accent/Technology */
-  --accent: 186 100% 38%;
-  --accent-foreground: 0 0% 100%;
+  /* Orange (#f97316) - Accent */
+  --accent: 25 95% 53%;
+  --accent-foreground: 210 40% 98%;
 
-  /* Backgrounds - Beige Piedra (#D7CCC8) */
-  --background: 16 18% 94%;
-  --foreground: 16 26% 28%;
+  /* Backgrounds */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
   
-  --card: 16 18% 98%;
-  --card-foreground: 16 26% 28%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
   
-  --popover: 16 18% 98%;
-  --popover-foreground: 16 26% 28%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
 
-  /* Marrón Tierra (#795548) for muted elements */
-  --muted: 16 18% 88%;
-  --muted-foreground: 16 26% 38%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --destructive-foreground: 210 40% 98%;
 
-  /* Beige Piedra borders */
-  --border: 16 18% 81%;
-  --input: 16 18% 81%;
-  --ring: 122 46% 34%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 222 47% 11%;
 
   --radius: 0.5rem;
 
-  /* Sidebar - Verde Bosque with Marrón Tierra accents */
-  --sidebar-background: 122 46% 34%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 186 100% 38%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 122 40% 28%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 122 40% 28%;
-  --sidebar-ring: 186 100% 38%;
+  /* Sidebar - Navy Blue with Orange accents */
+  --sidebar-background: 222 47% 11%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 25 95% 53%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 222 40% 18%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 222 40% 18%;
+  --sidebar-ring: 25 95% 53%;
 }
 
 @layer base {
