@@ -8,35 +8,46 @@
   --font-body: 'Inter', sans-serif;
   --font-display: 'Space Grotesk', sans-serif;
 
-  /* Navy Blue Primary */
-  --primary: 222 47% 11%;
-  --primary-foreground: 210 40% 98%;
+  /* Azul Marino Profundo (#1A237E) - Primary */
+  --primary: 234 67% 30%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Orange Accent */
-  --accent: 25 95% 53%;
-  --accent-foreground: 210 40% 98%;
+  /* Amarillo Construcción (#FBC02D) - Accent/CTA */
+  --accent: 45 97% 58%;
+  --accent-foreground: 234 67% 20%;
 
-  /* Backgrounds */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
+  /* Backgrounds - Blanco Humo (#F5F5F5) */
+  --background: 0 0% 96%;
+  --foreground: 234 67% 30%;
   
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 234 67% 30%;
   
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 234 67% 30%;
 
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
+  /* Gris Cemento (#757575) */
+  --muted: 0 0% 92%;
+  --muted-foreground: 0 0% 46%;
 
   --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 222 47% 11%;
+  --border: 0 0% 88%;
+  --input: 0 0% 88%;
+  --ring: 234 67% 30%;
 
   --radius: 0.5rem;
+
+  /* Sidebar - Navy Deep */
+  --sidebar-background: 234 67% 30%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 45 97% 58%;
+  --sidebar-primary-foreground: 234 67% 20%;
+  --sidebar-accent: 234 50% 40%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 234 50% 25%;
+  --sidebar-ring: 45 97% 58%;
 }
 
 @layer base {
