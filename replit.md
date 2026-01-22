@@ -44,6 +44,28 @@ Database tables:
 - `schedule_tasks` - Gantt-style project scheduling with dependencies
 - `construction_logs` - Site logs with notes, photos, and GPS coordinates
 
+## Key Features
+
+### Slab Comparator (SlabComparator component)
+Compares Traditional Slab (12cm) vs Vigueta y Bovedilla (V&B) system with polystyrene:
+
+**Material Coefficients (f'c 250 with 2% waste):**
+- Cement: 8.16 bags (50kg) per m³
+- Sand: 0.55 m³ per m³
+- Gravel: 0.65 m³ per m³
+- Water: 0.24 m³ per m³
+- Bucket conversion: 52.63 buckets (19L) per m³
+
+**Bovedilla Specifications:**
+- Dimensions: 1.22m × 0.63m × 0.12m
+- Axis distance: 70cm between viguetas
+
+**Features:**
+- User inputs: material prices, slab dimensions, compression layer thickness
+- Outputs: material quantities in m³ and 19L buckets, costs, savings
+- SVG floor plan visualization with dark background
+- Savings summary panel with percentage and absolute values
+
 ### Build System
 - **Development**: Vite dev server with HMR, Express backend served alongside
 - **Production**: Custom build script (`script/build.ts`) using esbuild for server bundling and Vite for client
