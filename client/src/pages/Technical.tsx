@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Ruler, Layers, ShieldCheck, Zap, ThermometerSun, Clock, Weight, CheckCircle2, ArrowDown, Hammer, Truck, HardHat, Wrench, Building, BookOpen, AlertCircle, Lightbulb, Package, Construction, Grid3X3 } from "lucide-react";
 
 import constructionImage from "@assets/stock_images/modern_construction__77c2c1d4.jpg";
-import cimbradoTecnicoImg from "@assets/cimbrado-tecnico.jpeg";
+import cimbradoTecnicoImg from "@assets/IMG_6379_1769205801594.jpeg";
 
 const beams = [
   { 
