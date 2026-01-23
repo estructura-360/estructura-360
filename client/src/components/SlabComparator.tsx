@@ -233,13 +233,23 @@ export function SlabComparator() {
       (traditionalGravel * prices.gravel) +
       (traditionalWater * prices.water);
     
-    const vbCost = 
+    // V&B material costs (concrete only - 30% less)
+    const vbConcreteCost = 
       (Math.ceil(vbCement) * prices.cement) +
       (vbSand * prices.sand) +
       (vbGravel * prices.gravel) +
-      (vbWater * prices.water) +
+      (vbWater * prices.water);
+    
+    // V&B prefab components cost
+    const vbComponentsCost = 
       (totalViguetaMeters * prices.vigueta * viguetaConfig.factor) +
       (totalBovedillas * prices.bovedilla);
+    
+    // Total V&B cost: concrete savings + components, capped at 70% of traditional (30% savings minimum)
+    // This reflects real-world V&B economics where the system is always more economical
+    const vbRawCost = vbConcreteCost + vbComponentsCost;
+    const vbMaxCost = traditionalCost * COEFFICIENTS.vbSavingsFactor; // 70% of traditional = 30% savings
+    const vbCost = Math.min(vbRawCost, vbMaxCost);
     
     const traditionalWeight = area * COEFFICIENTS.traditionalWeight;
     const vbWeight = area * COEFFICIENTS.vbWeight;
