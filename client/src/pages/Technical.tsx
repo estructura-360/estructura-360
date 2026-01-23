@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Ruler, Layers, ShieldCheck, Zap, ThermometerSun, Clock, Weight, CheckCircle2, ArrowDown, Hammer, Truck, HardHat, Wrench, Building, BookOpen, AlertCircle, Lightbulb, Package, Construction, Grid3X3 } from "lucide-react";
 
 import constructionImage from "@assets/stock_images/modern_construction__77c2c1d4.jpg";
+import cimbradoTecnicoImg from "@assets/cimbrado-tecnico.jpeg";
 
 const beams = [
   { 
@@ -445,6 +446,50 @@ export default function TechnicalPage() {
               Sigue estos pasos para una instalación correcta del sistema. Tiempo estimado para 100m²: 2-3 días con cuadrilla de 4 personas.
             </p>
           </div>
+          
+          <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/20">
+            <CardHeader className="bg-slate-100 dark:bg-slate-900 pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Ruler className="h-5 w-5 text-primary" />
+                Diagrama Técnico de Cimbrado
+              </CardTitle>
+              <CardDescription>
+                Referencia visual con dimensiones y nomenclatura de elementos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="bg-white flex justify-center">
+                <img 
+                  src={cimbradoTecnicoImg} 
+                  alt="Diagrama técnico de cimbrado para losa vigueta bovedilla" 
+                  className="max-w-full h-auto max-h-[500px] object-contain grayscale"
+                />
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-900 border-t">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-slate-600 rounded"></div>
+                    <span><strong>Puntal:</strong> Soporte vertical</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-slate-500 rounded"></div>
+                    <span><strong>Madrina:</strong> Viga horizontal</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-slate-400 rounded"></div>
+                    <span><strong>Contramadrina:</strong> Apoyo secundario</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-slate-300 rounded"></div>
+                    <span><strong>Barrote:</strong> Unión con vigueta</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3 text-center">
+                  Separación máxima entre puntales: 1.50 m | Bovedilla: 1.22 m × 0.63 m
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="space-y-6">
             {installationSteps.map((step, index) => (

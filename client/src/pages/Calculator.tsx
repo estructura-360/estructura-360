@@ -13,6 +13,8 @@ import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useProjects, useCreateProject, useAddCalculation, useDeleteProject } from "@/hooks/use-projects";
 import { Plus, Save, Loader2, Layers, BrickWall, FileImage, Trash2, Scale } from "lucide-react";
+import construccionLosaImg from "@assets/construccion-losa.jpeg";
+import panelEstructuralImg from "@assets/panel-estructural.jpeg";
 import { SlabComparator } from "@/components/SlabComparator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -301,11 +303,22 @@ export default function CalculatorPage() {
         <TabsContent value="slab" className="space-y-6">
           <Card className="border-0 shadow-xl shadow-primary/5 overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-primary to-accent w-full" />
-            <CardHeader className="bg-muted/10 pb-8">
-              <CardTitle className="text-2xl">Configuración de Losa</CardTitle>
-              <CardDescription>
-                Ingresa las dimensiones para generar el plano de distribución automático.
-              </CardDescription>
+            <CardHeader className="bg-muted/10 pb-4">
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-2xl mb-2">Configuración de Losa</CardTitle>
+                  <CardDescription>
+                    Ingresa las dimensiones para generar el plano de distribución automático.
+                  </CardDescription>
+                </div>
+                <div className="w-full md:w-64 h-40 rounded-xl overflow-hidden border shadow-md">
+                  <img 
+                    src={construccionLosaImg} 
+                    alt="Sistema Vigueta y Bovedilla en construcción" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="pt-8">
               <Form {...slabForm}>
@@ -534,11 +547,22 @@ export default function CalculatorPage() {
         <TabsContent value="wall">
           <Card className="border-0 shadow-xl shadow-primary/5 overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-accent to-primary w-full" />
-            <CardHeader className="bg-muted/10 pb-8">
-              <CardTitle className="text-2xl">Configuración de Muro</CardTitle>
-              <CardDescription>
-                Calcula paneles, mallas de unión y anclajes según dimensiones lineales.
-              </CardDescription>
+            <CardHeader className="bg-muted/10 pb-4">
+              <div className="flex flex-col md:flex-row gap-6 items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-2xl mb-2">Configuración de Muro</CardTitle>
+                  <CardDescription>
+                    Calcula paneles, mallas de unión y anclajes según dimensiones lineales.
+                  </CardDescription>
+                </div>
+                <div className="w-full md:w-48 h-56 rounded-xl overflow-hidden border shadow-md bg-slate-100">
+                  <img 
+                    src={panelEstructuralImg} 
+                    alt="Panel estructural con malla de refuerzo" 
+                    className="w-full h-full object-contain p-2"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="pt-8">
               <Form {...wallForm}>
