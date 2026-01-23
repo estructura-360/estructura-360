@@ -47,23 +47,37 @@ Database tables:
 ## Key Features
 
 ### Slab Comparator (SlabComparator component)
-Compares Losa Tradicional (12cm) vs Losa Vigueta Bovedilla with polystyrene:
+Compares Losa Tradicional (10cm) vs Losa Vigueta Bovedilla with polystyrene:
 
-**Material Coefficients (f'c 250 with 2% waste):**
-- Cement: 8.16 bags (50kg) per m³
-- Sand: 0.55 m³ per m³
-- Gravel: 0.65 m³ per m³
-- Water: 200 liters per m³
+**Material Coefficients (f'c 250 kg/cm² with 2% waste):**
+- Cement: 8 bultos (50kg) per m³
+- Sand: 0.5415 m³ per m³
+- Gravel: 0.646 m³ per m³
+- Water: 237.5 liters per m³
 - Bucket conversion: 52.63 buckets (19L) per m³
+
+**Vigueta Types (with images):**
+- Vigueta de Alma Abierta: Lightweight, easy to handle (factor 1.0)
+- Vigueta Pretensada: Heavier, more robust for large spans (factor 1.10)
+
+**Automatic Peralte Selection (based on shortest side):**
+- ≤1.9m → Peralte 15 cm
+- 1.9m-5m → Peralte 20 cm
+- 5m-6m → Peralte 25 cm
 
 **Bovedilla Specifications:**
 - Dimensions: 1.22m × 0.63m × 0.12m
 - Axis distance: 70cm between viguetas
 
+**EPS Wall Panels (optional):**
+- 8% cost increase vs traditional walls
+- Benefits: thermal/acoustic insulation, energy savings, less structural weight
+
 **Comparison Logic:**
 - V&B applies 30% material savings vs traditional slab
 - Weight: Traditional 288 kg/m² vs V&B 180 kg/m²
-- Time: 40% reduction with V&B system
+- Time: 60-70% reduction with V&B system (50 m²/day vs 5 m²/day)
+- Formwork: 85% savings (eliminates contact formwork)
 
 **Layout Algorithm:**
 - Viguetas: Divide longest side by 0.70, round DOWN (e.g., 10/0.7=14.28 → 14 viguetas)

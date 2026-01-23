@@ -5,11 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calculator, FileDown, Scale, Clock, Weight, TrendingDown, Users, Ruler, Info, CheckCircle2 } from "lucide-react";
+import { Calculator, FileDown, Scale, Clock, Weight, TrendingDown, Users, Ruler, Info, CheckCircle2, Feather, Shield } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+import viguetaAlmaAbiertaImg from "@/assets/vigueta-alma-abierta.jpeg";
+import viguetaPretensadaImg from "@/assets/vigueta-pretensada.jpeg";
+import panelEpsImg from "@/assets/panel-eps.png";
 
 interface MaterialPrices {
   cement: number;
@@ -69,18 +73,23 @@ interface CalculationResults {
   };
 }
 
+// Coeficientes actualizados f'c=250 kg/cm² con 2% desperdicio
 const COEFFICIENTS = {
-  cement: 8.16,
-  sand: 0.55,
-  gravel: 0.65,
-  water: 200,
-  waste: 1.02,
+  cement: 8,           // 8 bultos por m³
+  sand: 0.5415,        // m³ por m³
+  gravel: 0.646,       // m³ por m³
+  water: 237.5,        // litros por m³
+  waste: 1.02,         // 2% desperdicio
   bucketsPerM3: 52.63,
-  traditionalThickness: 0.12,
-  vbSavingsFactor: 0.70,
+  traditionalThickness: 0.10,  // 10cm losa tradicional
+  vbCompressionLayer: 0.07,    // 7cm capa de compresión V&B
+  vbSavingsFactor: 0.70,       // 30% ahorro de concreto
   traditionalWeight: 288,
   vbWeight: 180,
-  timeReduction: 0.40,
+  timeReduction: 0.65,         // 60-70% ahorro de tiempo
+  formworkSavings: 0.85,       // 85% ahorro de cimbra
+  productivityVB: 50,          // m²/día con V&B
+  productivityTraditional: 5,  // m²/día tradicional
 };
 
 const BOVEDILLA = {
@@ -90,9 +99,30 @@ const BOVEDILLA = {
   axisDistance: 0.70,
 };
 
-const VIGUETA_DEPTHS = {
-  walls: { label: "Muros de Carga", depth: 0.15, factor: 1.0 },
-  beams: { label: "Trabes de Concreto", depth: 0.20, factor: 1.15 },
+// Tipos de vigueta con selección automática de peralte
+const VIGUETA_TYPES = {
+  almaAbierta: { 
+    label: "Vigueta de Alma Abierta", 
+    description: "Ligera y fácil de manejar",
+    image: viguetaAlmaAbiertaImg,
+    factor: 1.0,
+    icon: "feather"
+  },
+  pretensada: { 
+    label: "Vigueta Pretensada", 
+    description: "Más pesada y robusta para grandes claros",
+    image: viguetaPretensadaImg,
+    factor: 1.10,
+    icon: "shield"
+  },
+};
+
+// Selección automática de peralte según lado más corto
+// ≤1.9m → Peralte 15, 1.9-5m → Peralte 20, 5-6m → Peralte 25
+const getPeralte = (shortestSide: number): { peralte: number; label: string } => {
+  if (shortestSide <= 1.9) return { peralte: 15, label: "Peralte 15 cm" };
+  if (shortestSide < 5) return { peralte: 20, label: "Peralte 20 cm" };
+  return { peralte: 25, label: "Peralte 25 cm" };
 };
 
 export function SlabComparator() {
@@ -112,10 +142,11 @@ export function SlabComparator() {
     width: 0,
   });
 
-  const [supportType, setSupportType] = useState<"walls" | "beams">("walls");
+  const [viguetaType, setViguetaType] = useState<"almaAbierta" | "pretensada">("almaAbierta");
+  const [useEpsWalls, setUseEpsWalls] = useState(false);
   const [workers, setWorkers] = useState(5);
   const [results, setResults] = useState<CalculationResults | null>(null);
-  const [compressionLayer, setCompressionLayer] = useState(5);
+  const [compressionLayer, setCompressionLayer] = useState(7);
 
   const handlePriceChange = (field: keyof MaterialPrices, value: string) => {
     setPrices(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -199,7 +230,9 @@ export function SlabComparator() {
     
     const area = dimensions.length * dimensions.width;
     const compressionM = compressionLayer / 100;
-    const viguetaConfig = VIGUETA_DEPTHS[supportType];
+    const shortestSide = Math.min(dimensions.length, dimensions.width);
+    const peralteInfo = getPeralte(shortestSide);
+    const viguetaConfig = VIGUETA_TYPES[viguetaType];
     
     const traditionalVolume = area * COEFFICIENTS.traditionalThickness * COEFFICIENTS.waste;
     const traditionalCement = traditionalVolume * COEFFICIENTS.cement;
@@ -249,14 +282,20 @@ export function SlabComparator() {
     // This reflects real-world V&B economics where the system is always more economical
     const vbRawCost = vbConcreteCost + vbComponentsCost;
     const vbMaxCost = traditionalCost * COEFFICIENTS.vbSavingsFactor; // 70% of traditional = 30% savings
-    const vbCost = Math.min(vbRawCost, vbMaxCost);
+    let vbCost = Math.min(vbRawCost, vbMaxCost);
+    
+    // Apply EPS wall panel cost increase (+8%) if selected
+    if (useEpsWalls) {
+      vbCost = vbCost * 1.08;
+    }
     
     const traditionalWeight = area * COEFFICIENTS.traditionalWeight;
     const vbWeight = area * COEFFICIENTS.vbWeight;
     
-    const baseDays = Math.ceil(area / (workers * 2));
-    const traditionalDays = baseDays;
-    const vbDays = Math.ceil(baseDays * (1 - COEFFICIENTS.timeReduction));
+    // Cálculo de tiempo basado en productividad real
+    // Tradicional: 5 m²/día por trabajador, V&B: 50 m²/día por cuadrilla
+    const traditionalDays = Math.ceil(area / (workers * COEFFICIENTS.productivityTraditional));
+    const vbDays = Math.ceil(area / (workers * COEFFICIENTS.productivityVB));
     
     const materialSaved = traditionalVolume - vbConcreteVolume;
     const costSaved = traditionalCost - vbCost;
@@ -329,7 +368,7 @@ export function SlabComparator() {
     doc.setFont("helvetica", "normal");
     doc.text(`Dimensiones: ${dimensions.length}m x ${dimensions.width}m = ${(dimensions.length * dimensions.width).toFixed(2)} m²`, 14, yPos);
     yPos += 6;
-    doc.text(`Tipo de Apoyo: ${VIGUETA_DEPTHS[supportType].label}`, 14, yPos);
+    doc.text(`Tipo de Vigueta: ${VIGUETA_TYPES[viguetaType].label}`, 14, yPos);
     yPos += 6;
     doc.text(`Capa de Compresión: ${compressionLayer} cm`, 14, yPos);
     yPos += 6;
@@ -462,42 +501,74 @@ export function SlabComparator() {
 
               <div>
                 <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 block">
-                  Tipo de Apoyo
+                  Tipo de Vigueta
                 </Label>
                 <RadioGroup
-                  value={supportType}
-                  onValueChange={(v) => setSupportType(v as "walls" | "beams")}
-                  className="grid grid-cols-2 gap-3"
+                  value={viguetaType}
+                  onValueChange={(v) => setViguetaType(v as "almaAbierta" | "pretensada")}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  data-testid="radio-vigueta-type"
                 >
                   <Label
-                    htmlFor="walls"
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      supportType === "walls" 
+                    htmlFor="almaAbierta"
+                    className={`flex flex-col gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      viguetaType === "almaAbierta" 
                         ? "border-primary bg-primary/5" 
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <RadioGroupItem value="walls" id="walls" />
-                    <div>
-                      <div className="font-medium">Muros de Carga</div>
-                      <div className="text-xs text-muted-foreground">Vigueta estándar</div>
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="almaAbierta" id="almaAbierta" />
+                      <Feather className="h-5 w-5 text-primary" />
+                      <div>
+                        <div className="font-medium">Vigueta de Alma Abierta</div>
+                        <div className="text-xs text-muted-foreground">Ligera y fácil de manejar</div>
+                      </div>
                     </div>
+                    <img 
+                      src={viguetaAlmaAbiertaImg} 
+                      alt="Vigueta de Alma Abierta" 
+                      className="w-full h-24 object-contain rounded-lg bg-white"
+                    />
                   </Label>
                   <Label
-                    htmlFor="beams"
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                      supportType === "beams" 
+                    htmlFor="pretensada"
+                    className={`flex flex-col gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      viguetaType === "pretensada" 
                         ? "border-primary bg-primary/5" 
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <RadioGroupItem value="beams" id="beams" />
-                    <div>
-                      <div className="font-medium">Trabes de Concreto</div>
-                      <div className="text-xs text-muted-foreground">Vigueta reforzada (+15%)</div>
+                    <div className="flex items-center gap-3">
+                      <RadioGroupItem value="pretensada" id="pretensada" />
+                      <Shield className="h-5 w-5 text-primary" />
+                      <div>
+                        <div className="font-medium">Vigueta Pretensada</div>
+                        <div className="text-xs text-muted-foreground">Más pesada y robusta (+10%)</div>
+                      </div>
                     </div>
+                    <img 
+                      src={viguetaPretensadaImg} 
+                      alt="Vigueta Pretensada" 
+                      className="w-full h-24 object-contain rounded-lg bg-white"
+                    />
                   </Label>
                 </RadioGroup>
+                
+                {dimensions.length > 0 && dimensions.width > 0 && (
+                  <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Ruler className="h-4 w-4 text-primary" />
+                      <span className="font-medium">Peralte Recomendado:</span>
+                      <Badge variant="secondary">
+                        {getPeralte(Math.min(dimensions.length, dimensions.width)).label}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Basado en lado más corto: {Math.min(dimensions.length, dimensions.width).toFixed(2)}m
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -516,6 +587,54 @@ export function SlabComparator() {
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>3 cm (mínimo)</span>
                   <span>7 cm (reforzado)</span>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 block">
+                  Muros de Poliestireno (EPS)
+                </Label>
+                <div
+                  onClick={() => setUseEpsWalls(!useEpsWalls)}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    useEpsWalls 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  data-testid="toggle-eps-walls"
+                >
+                  <div className="flex items-start gap-4">
+                    <img 
+                      src={panelEpsImg} 
+                      alt="Panel Estructural EPS" 
+                      className="w-24 h-24 object-contain rounded-lg bg-white flex-shrink-0"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                          useEpsWalls ? "border-primary bg-primary" : "border-muted-foreground"
+                        }`}>
+                          {useEpsWalls && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
+                        </div>
+                        <span className="font-medium">Panel Estructural EPS</span>
+                        <Badge variant="secondary" className="ml-auto">+8% costo</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          <span>Aislamiento térmico y acústico</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          <span>Ahorro en consumo de luz</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                          <span>Menor peso estructural</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,0 +1,40 @@
+Actúa como un Desarrollador Senior y experto en Ingeniería Estructural. Crea una aplicación web profesional (React + Tailwind CSS) que funcione como calculadora de obra, generador de planos y comparador de eficiencia constructiva.
+1. Estructura y Secciones
+• Información Técnica: Detalles de resistencia f'c = 250 kg/cm² y beneficios del sistema.
+• Calculadora y Comparador: Formulario único para dimensiones, apoyos y muros.
+• Presupuesto Detallado: Desglose de materiales y costos.
+• Plano de Distribución Dinámico: Esquema técnico visual (SVG).
+• Acerca de: Ventajas de peso, ahorro y tiempos.
+2. Lógica de Ingeniería y Dimensionamiento
+• Selección de Peralte (Basado en la medida más corta de la losa):
+•  1.9 metros Peralte 15.
+• 1.9 a 5 metros  Peralte 20.
+• 5 a 6 metros  Peralte 25.
+• sustituir Tipos de Apoyo por tipo de vigueta (Incluir imágenes descriptivas):
+• Vigueta de Alma Abierta: Resaltar ligereza.
+• Vigueta Pretensada: Especificar que es más pesada y robusta.
+• Muros de Poliestireno (EPS): Indicar un costo 8% superior al muro tradicional, pero detallar beneficios: aislamiento térmico/acústico, ahorro de luz y menor peso estructural.
+3. Cuantificación y Materiales (f'c = 250 kg/cm²)
+Usa estos valores base por cada 1 m³ e incluye un 2% de desperdicio extra en todos:
+• Cemento: 8 bultos.
+• Grava: 0.646 m³.
+• Arena: 0.5415 m³.
+• Agua: 237.5 litros.
+• Lógica de Espesores:
+• Losa Tradicional: 0.10 m de espesor total.
+• Losa Vigueta Bovedilla: 0.07 m (capa de compresión), logrando un 30% de ahorro de concreto.
+• Unidades de Presupuesto: Vigueta por pieza (según peralte) y Bovedilla de poliestireno por m³.
+4. Plano de Distribución Técnico (SVG)
+• Viguetas: Dividir el lado más largo entre 0.70. Usar el entero hacia abajo (floor). No colocar vigueta en los extremos (espacio para cadenas).
+• Bovedillas: Rellenar la superficie total sin dejar huecos (considerar piezas de ajuste).
+• Malla Electrosoldada: Dibujar cuadrícula sobre el plano. Cubrir el 100% de la superficie sin recortes + 2% de desperdicio.
+5. Comparativa de Tiempo y Rendimiento
+Implementar un simulador con slider de personal (1 a 30 personas) usando:
+• Ahorro de Tiempo: El sistema Losa Vigueta Bovedilla ahorra entre 60% y 70% de tiempo.
+• Rendimiento: Cuadrilla instala 50 m² diarios vs 5 m² diarios en losa tradicional.
+• Cimbra: Ahorro de más del 85% de cimbra (elimina cimbra de contacto).
+• Ahorro General: Resaltar una reducción de costos generales cercana al 25%.
+6. Interfaz de Usuario (UX)
+• Nombre completo: Usar siempre "Losa Vigueta Bovedilla".
+• Entradas: Todos los precios inician en 0 para ser llenados por el cliente.
+• Reporte: Botón para generar PDF con el presupuesto y el plano.
