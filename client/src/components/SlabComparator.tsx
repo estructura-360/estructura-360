@@ -47,7 +47,7 @@ interface CalculationResults {
     sand: { m3: number; buckets: number };
     gravel: { m3: number; buckets: number };
     water: { liters: number };
-    viguetas: { count: number; meters: number };
+    viguetas: { count: number; meters: number; distribution: ViguetaDistribution };
     bovedillas: number;
     totalCost: number;
     weight: number;
@@ -64,13 +64,14 @@ interface CalculationResults {
     timePct: number;
   };
   layout: {
-    joistPositions: number[];
+    joistPositions: { pos: number; peralte: 15 | 20 | 25 }[];
     bovedillaRows: { y: number; pieces: { x: number; width: number; isAdjustment: boolean }[] }[];
     orientation: "length" | "width";
     chainWidth: number;
     numJoists: number;
     longestSide: number;
     shortestSide: number;
+    distribution: ViguetaDistribution;
   };
 }
 
@@ -126,6 +127,43 @@ const getPeralte = (shortestSide: number): { peralte: number; label: string } =>
   return { peralte: 25, label: "Peralte 25 cm" };
 };
 
+// Colores para cada tipo de peralte en el plano
+const PERALTE_COLORS = {
+  15: { stroke: "#22d3ee", fill: "#22d3ee", label: "P-15 (Cian)" },    // Cian
+  20: { stroke: "#a855f7", fill: "#a855f7", label: "P-20 (Violeta)" }, // Violeta
+  25: { stroke: "#f43f5e", fill: "#f43f5e", label: "P-25 (Rosa)" },    // Rosa
+};
+
+interface ViguetaDistribution {
+  p15: number;
+  p20: number;
+  p25: number;
+}
+
+// Recomendar distribución de viguetas según claro
+const recommendViguetaDistribution = (shortestSide: number, totalViguetas: number): ViguetaDistribution => {
+  // Basado en el claro (lado más corto), recomendamos el peralte adecuado
+  // Para claros mixtos, se puede usar combinación
+  if (shortestSide <= 1.9) {
+    // Claro corto: todas P-15
+    return { p15: totalViguetas, p20: 0, p25: 0 };
+  } else if (shortestSide < 3.5) {
+    // Claro medio-corto: mayoría P-15, algunas P-20 para refuerzo en extremos
+    const p20Count = Math.min(2, Math.floor(totalViguetas * 0.2));
+    return { p15: totalViguetas - p20Count, p20: p20Count, p25: 0 };
+  } else if (shortestSide < 5) {
+    // Claro medio: todas P-20
+    return { p15: 0, p20: totalViguetas, p25: 0 };
+  } else if (shortestSide < 5.5) {
+    // Claro medio-largo: mayoría P-20, algunas P-25 para refuerzo central
+    const p25Count = Math.min(Math.ceil(totalViguetas * 0.3), Math.floor(totalViguetas / 2));
+    return { p15: 0, p20: totalViguetas - p25Count, p25: p25Count };
+  } else {
+    // Claro largo: todas P-25
+    return { p15: 0, p20: 0, p25: totalViguetas };
+  }
+};
+
 export function SlabComparator() {
   const svgRef = useRef<SVGSVGElement>(null);
   
@@ -149,6 +187,8 @@ export function SlabComparator() {
   const [workers, setWorkers] = useState(5);
   const [results, setResults] = useState<CalculationResults | null>(null);
   const [compressionLayer, setCompressionLayer] = useState(7);
+  const [viguetaDistribution, setViguetaDistribution] = useState<ViguetaDistribution>({ p15: 0, p20: 0, p25: 0 });
+  const [useCustomDistribution, setUseCustomDistribution] = useState(false);
 
   const handlePriceChange = (field: keyof MaterialPrices, value: string) => {
     setPrices(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
@@ -168,11 +208,54 @@ export function SlabComparator() {
     
     const numJoists = Math.floor(longestSide / BOVEDILLA.axisDistance);
     
-    const joistPositions: number[] = [];
+    const joistPositions: { pos: number; peralte: 15 | 20 | 25 }[] = [];
     const joistSpacing = longestSide / (numJoists + 1);
     
+    // Obtener distribución de viguetas (recomendada o personalizada)
+    const distribution = useCustomDistribution 
+      ? viguetaDistribution 
+      : recommendViguetaDistribution(shortestSide, numJoists);
+    
+    // Asignar peralte a cada vigueta según distribución
+    // P-25 en el centro (mayor carga), P-20 intermedias, P-15 en extremos
+    const peralteAssignments: (15 | 20 | 25)[] = [];
+    const center = Math.floor(numJoists / 2);
+    
+    // Primero asignamos P-25 en el centro
+    let p25Remaining = distribution.p25;
+    let p20Remaining = distribution.p20;
+    let p15Remaining = distribution.p15;
+    
+    for (let i = 0; i < numJoists; i++) {
+      const distFromCenter = Math.abs(i - center);
+      peralteAssignments[i] = 15; // default
+    }
+    
+    // Asignar P-25 desde el centro hacia afuera
+    for (let offset = 0; offset <= center && p25Remaining > 0; offset++) {
+      if (center + offset < numJoists && p25Remaining > 0) {
+        peralteAssignments[center + offset] = 25;
+        p25Remaining--;
+      }
+      if (offset > 0 && center - offset >= 0 && p25Remaining > 0) {
+        peralteAssignments[center - offset] = 25;
+        p25Remaining--;
+      }
+    }
+    
+    // Asignar P-20 en las siguientes posiciones
+    for (let i = 0; i < numJoists && p20Remaining > 0; i++) {
+      if (peralteAssignments[i] !== 25) {
+        peralteAssignments[i] = 20;
+        p20Remaining--;
+      }
+    }
+    
     for (let i = 1; i <= numJoists; i++) {
-      joistPositions.push(joistSpacing * i);
+      joistPositions.push({
+        pos: joistSpacing * i,
+        peralte: peralteAssignments[i - 1] || 15,
+      });
     }
     
     const bovedillaRows: { y: number; pieces: { x: number; width: number; isAdjustment: boolean }[] }[] = [];
@@ -181,8 +264,8 @@ export function SlabComparator() {
     const bovedillaEffectiveWidth = BOVEDILLA.width;
     
     for (let i = 0; i <= numJoists; i++) {
-      const rowStart = i === 0 ? chainWidth : joistPositions[i - 1];
-      const rowEnd = i === numJoists ? longestSide - chainWidth : joistPositions[i];
+      const rowStart = i === 0 ? chainWidth : joistPositions[i - 1].pos;
+      const rowEnd = i === numJoists ? longestSide - chainWidth : joistPositions[i].pos;
       const rowWidth = rowEnd - rowStart;
       
       if (rowWidth <= 0) continue;
@@ -224,6 +307,7 @@ export function SlabComparator() {
       numJoists,
       longestSide,
       shortestSide,
+      distribution,
     };
   };
 
@@ -276,11 +360,13 @@ export function SlabComparator() {
       (vbWater * prices.water);
     
     // V&B prefab components cost
-    // Vigueta: precio por pieza según peralte
-    const viguetaCount = layout.joistPositions.length;
-    const viguetaPricePerPiece = peralteInfo.peralte === 15 ? prices.viguetaP15 : 
-                                  peralteInfo.peralte === 20 ? prices.viguetaP20 : prices.viguetaP25;
-    const viguetaCost = viguetaCount * viguetaPricePerPiece * viguetaConfig.factor;
+    // Vigueta: precio por pieza según peralte de cada una
+    const dist = layout.distribution;
+    const viguetaCost = (
+      (dist.p15 * prices.viguetaP15) +
+      (dist.p20 * prices.viguetaP20) +
+      (dist.p25 * prices.viguetaP25)
+    ) * viguetaConfig.factor;
     
     // Bovedilla: precio por m³
     const bovedillaVolume = totalBovedillas * BOVEDILLA.length * BOVEDILLA.width * BOVEDILLA.height;
@@ -324,7 +410,7 @@ export function SlabComparator() {
         sand: { m3: vbSand, buckets: Math.ceil(vbSand * COEFFICIENTS.bucketsPerM3) },
         gravel: { m3: vbGravel, buckets: Math.ceil(vbGravel * COEFFICIENTS.bucketsPerM3) },
         water: { liters: Math.ceil(vbWater) },
-        viguetas: { count: layout.joistPositions.length, meters: totalViguetaMeters },
+        viguetas: { count: layout.joistPositions.length, meters: totalViguetaMeters, distribution: dist },
         bovedillas: totalBovedillas,
         totalCost: vbCost,
         weight: vbWeight,
@@ -873,8 +959,27 @@ export function SlabComparator() {
                       <td className="p-4 font-medium">Viguetas</td>
                       <td className="p-4 text-center text-muted-foreground">N/A</td>
                       <td className="p-4 text-center bg-accent/5">
-                        {results.vb.viguetas.count} pzas
-                        <span className="text-muted-foreground text-xs block">({results.vb.viguetas.meters.toFixed(1)} m totales)</span>
+                        <div className="font-semibold">{results.vb.viguetas.count} pzas totales</div>
+                        <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                          {results.vb.viguetas.distribution.p15 > 0 && (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PERALTE_COLORS[15].fill }}></span>
+                              P-15: {results.vb.viguetas.distribution.p15} pzas
+                            </div>
+                          )}
+                          {results.vb.viguetas.distribution.p20 > 0 && (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PERALTE_COLORS[20].fill }}></span>
+                              P-20: {results.vb.viguetas.distribution.p20} pzas
+                            </div>
+                          )}
+                          {results.vb.viguetas.distribution.p25 > 0 && (
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PERALTE_COLORS[25].fill }}></span>
+                              P-25: {results.vb.viguetas.distribution.p25} pzas
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                     <tr className="border-b">
@@ -989,36 +1094,39 @@ export function SlabComparator() {
                       strokeDasharray="5,3"
                     />
                     
-                    {results.layout.joistPositions.map((pos, i) => (
-                      <g key={`joist-${i}`}>
-                        <line
-                          x1={results.layout.chainWidth * 50}
-                          y1={pos * 50}
-                          x2={(dimensions.length - results.layout.chainWidth) * 50}
-                          y2={pos * 50}
-                          stroke="#22d3ee"
-                          strokeWidth="4"
-                        />
-                        <text
-                          x={-10}
-                          y={pos * 50 + 4}
-                          fill="#22d3ee"
-                          fontSize="10"
-                          textAnchor="end"
-                        >
-                          V{i + 1}
-                        </text>
-                      </g>
-                    ))}
+                    {results.layout.joistPositions.map((joist, i) => {
+                      const color = PERALTE_COLORS[joist.peralte];
+                      return (
+                        <g key={`joist-${i}`}>
+                          <line
+                            x1={results.layout.chainWidth * 50}
+                            y1={joist.pos * 50}
+                            x2={(dimensions.length - results.layout.chainWidth) * 50}
+                            y2={joist.pos * 50}
+                            stroke={color.stroke}
+                            strokeWidth="4"
+                          />
+                          <text
+                            x={-10}
+                            y={joist.pos * 50 + 4}
+                            fill={color.fill}
+                            fontSize="9"
+                            textAnchor="end"
+                          >
+                            P{joist.peralte}
+                          </text>
+                        </g>
+                      );
+                    })}
                     
                     {results.layout.bovedillaRows.map((row, rowIdx) => {
                       const nextJoistPos = rowIdx < results.layout.joistPositions.length 
-                        ? results.layout.joistPositions[rowIdx] 
+                        ? results.layout.joistPositions[rowIdx].pos 
                         : results.layout.longestSide - results.layout.chainWidth;
                       const prevJoistPos = rowIdx === 0 
                         ? results.layout.chainWidth 
-                        : results.layout.joistPositions[rowIdx - 1];
-                      const rowHeight = nextJoistPos - prevJoistPos;
+                        : results.layout.joistPositions[rowIdx - 1].pos;
+                      const rowHeight = Math.max(0.1, nextJoistPos - prevJoistPos);
                       
                       return row.pieces.map((piece, pIdx) => (
                         <rect
@@ -1051,15 +1159,32 @@ export function SlabComparator() {
                   </g>
                   
                   <g transform={`translate(${dimensions.length * 50 + 80}, 60)`}>
-                    <text fill="#e2e8f0" fontSize="11" fontWeight="bold">Leyenda:</text>
-                    <line x1="0" y1="20" x2="30" y2="20" stroke="#22d3ee" strokeWidth="4" />
-                    <text x="40" y="24" fill="#94a3b8" fontSize="10">Vigueta</text>
-                    <rect x="0" y="35" width="30" height="15" fill="#f97316" fillOpacity="0.3" stroke="#f97316" />
-                    <text x="40" y="47" fill="#94a3b8" fontSize="10">Bovedilla</text>
-                    <rect x="0" y="60" width="30" height="15" fill="#fb923c" fillOpacity="0.3" stroke="#fb923c" />
-                    <text x="40" y="72" fill="#94a3b8" fontSize="10">Ajuste</text>
-                    <line x1="0" y1="85" x2="30" y2="85" stroke="#fbbf24" strokeWidth="1" strokeDasharray="5,3" />
-                    <text x="40" y="89" fill="#94a3b8" fontSize="10">Cadena</text>
+                    <text fill="#e2e8f0" fontSize="11" fontWeight="bold">Leyenda Viguetas:</text>
+                    {results.layout.distribution.p15 > 0 && (
+                      <>
+                        <line x1="0" y1="20" x2="30" y2="20" stroke={PERALTE_COLORS[15].stroke} strokeWidth="4" />
+                        <text x="40" y="24" fill="#94a3b8" fontSize="10">P-15 ({results.layout.distribution.p15} pzas)</text>
+                      </>
+                    )}
+                    {results.layout.distribution.p20 > 0 && (
+                      <>
+                        <line x1="0" y1={results.layout.distribution.p15 > 0 ? 35 : 20} x2="30" y2={results.layout.distribution.p15 > 0 ? 35 : 20} stroke={PERALTE_COLORS[20].stroke} strokeWidth="4" />
+                        <text x="40" y={results.layout.distribution.p15 > 0 ? 39 : 24} fill="#94a3b8" fontSize="10">P-20 ({results.layout.distribution.p20} pzas)</text>
+                      </>
+                    )}
+                    {results.layout.distribution.p25 > 0 && (
+                      <>
+                        <line x1="0" y1={50} x2="30" y2={50} stroke={PERALTE_COLORS[25].stroke} strokeWidth="4" />
+                        <text x="40" y={54} fill="#94a3b8" fontSize="10">P-25 ({results.layout.distribution.p25} pzas)</text>
+                      </>
+                    )}
+                    <text fill="#e2e8f0" fontSize="11" fontWeight="bold" y="75">Otros:</text>
+                    <rect x="0" y="90" width="30" height="15" fill="#f97316" fillOpacity="0.3" stroke="#f97316" />
+                    <text x="40" y="102" fill="#94a3b8" fontSize="10">Bovedilla</text>
+                    <rect x="0" y="115" width="30" height="15" fill="#fb923c" fillOpacity="0.3" stroke="#fb923c" />
+                    <text x="40" y="127" fill="#94a3b8" fontSize="10">Ajuste</text>
+                    <line x1="0" y1="140" x2="30" y2="140" stroke="#fbbf24" strokeWidth="1" strokeDasharray="5,3" />
+                    <text x="40" y="144" fill="#94a3b8" fontSize="10">Cadena</text>
                   </g>
                 </svg>
               </div>
