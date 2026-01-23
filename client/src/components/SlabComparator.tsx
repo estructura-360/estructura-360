@@ -1,287 +1,583 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calculator, FileDown, Scale, Clock, Weight, TrendingDown, Users, Ruler, Info, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calculator, TrendingDown, DollarSign, Droplets, Box, Layers, ArrowRight, CheckCircle2, Package } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-interface MaterialInputs {
-  sandPriceM3: number;
-  gravelPriceM3: number;
-  cementPriceBag: number;
-  slabLength: number;
-  slabWidth: number;
-  compressionLayer: number;
+interface MaterialPrices {
+  cement: number;
+  sand: number;
+  gravel: number;
+  water: number;
+  vigueta: number;
+  bovedilla: number;
 }
 
-interface SlabResults {
+interface SlabDimensions {
+  length: number;
+  width: number;
+}
+
+interface CalculationResults {
   traditional: {
-    volumeM3: number;
-    cement: { bags: number; cost: number };
-    sand: { m3: number; buckets: number; cost: number };
-    gravel: { m3: number; buckets: number; cost: number };
-    water: { m3: number; buckets: number };
+    volume: number;
+    cement: number;
+    sand: { m3: number; buckets: number };
+    gravel: { m3: number; buckets: number };
+    water: { liters: number };
     totalCost: number;
+    weight: number;
+    days: number;
   };
-  viguetaBovedilla: {
-    volumeM3: number;
-    cement: { bags: number; cost: number };
-    sand: { m3: number; buckets: number; cost: number };
-    gravel: { m3: number; buckets: number; cost: number };
-    water: { m3: number; buckets: number };
+  vb: {
+    volume: number;
+    cement: number;
+    sand: { m3: number; buckets: number };
+    gravel: { m3: number; buckets: number };
+    water: { liters: number };
+    viguetas: { count: number; meters: number };
+    bovedillas: number;
     totalCost: number;
-    bovedillaCount: number;
-    viguetaCount: number;
+    weight: number;
+    days: number;
   };
   savings: {
-    concreteM3: number;
-    concretePct: number;
-    costSaved: number;
+    material: number;
+    cost: number;
+    weight: number;
+    time: number;
+    materialPct: number;
     costPct: number;
+    weightPct: number;
+    timePct: number;
+  };
+  layout: {
+    joistPositions: number[];
+    bovedillaRows: { y: number; pieces: number; adjustmentWidth: number }[];
+    orientation: "length" | "width";
+    chainWidth: number;
   };
 }
 
-const MATERIAL_COEFFICIENTS = {
+const COEFFICIENTS = {
   cement: 8.16,
   sand: 0.55,
   gravel: 0.65,
-  water: 0.24,
+  water: 200,
+  waste: 1.02,
   bucketsPerM3: 52.63,
+  traditionalThickness: 0.12,
+  vbSavingsFactor: 0.70,
+  traditionalWeight: 288,
+  vbWeight: 180,
+  timeReduction: 0.40,
 };
 
 const BOVEDILLA = {
   length: 1.22,
   width: 0.63,
-  axisDistance: 0.70,
   height: 0.12,
+  axisDistance: 0.70,
 };
 
-const TRADITIONAL_THICKNESS = 0.12;
+const VIGUETA_DEPTHS = {
+  walls: { label: "Muros de Carga", depth: 0.15, factor: 1.0 },
+  beams: { label: "Trabes de Concreto", depth: 0.20, factor: 1.15 },
+};
 
 export function SlabComparator() {
-  const [inputs, setInputs] = useState<MaterialInputs>({
-    sandPriceM3: 350,
-    gravelPriceM3: 450,
-    cementPriceBag: 180,
-    slabLength: 6,
-    slabWidth: 4,
-    compressionLayer: 5,
+  const svgRef = useRef<SVGSVGElement>(null);
+  
+  const [prices, setPrices] = useState<MaterialPrices>({
+    cement: 0,
+    sand: 0,
+    gravel: 0,
+    water: 0,
+    vigueta: 0,
+    bovedilla: 0,
   });
 
-  const [results, setResults] = useState<SlabResults | null>(null);
+  const [dimensions, setDimensions] = useState<SlabDimensions>({
+    length: 0,
+    width: 0,
+  });
 
-  const handleInputChange = (field: keyof MaterialInputs, value: string) => {
-    setInputs(prev => ({
-      ...prev,
-      [field]: parseFloat(value) || 0
-    }));
+  const [supportType, setSupportType] = useState<"walls" | "beams">("walls");
+  const [workers, setWorkers] = useState(5);
+  const [results, setResults] = useState<CalculationResults | null>(null);
+  const [compressionLayer, setCompressionLayer] = useState(5);
+
+  const handlePriceChange = (field: keyof MaterialPrices, value: string) => {
+    setPrices(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
-  const calculateSlabs = () => {
-    const area = inputs.slabLength * inputs.slabWidth;
-    const compressionM = inputs.compressionLayer / 100;
+  const handleDimensionChange = (field: keyof SlabDimensions, value: string) => {
+    setDimensions(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
+  };
 
-    const traditionalVolume = area * TRADITIONAL_THICKNESS;
-
-    const numViguetas = Math.floor(inputs.slabWidth / BOVEDILLA.axisDistance) + 1;
-    const bovedillasPerRow = Math.floor(inputs.slabLength / BOVEDILLA.length);
-    const numRows = numViguetas - 1;
-    const totalBovedillas = bovedillasPerRow * numRows;
-
-    const bovedillaVoidVolume = totalBovedillas * BOVEDILLA.length * BOVEDILLA.width * BOVEDILLA.height;
+  const calculateLayout = () => {
+    const { length, width } = dimensions;
+    const chainWidth = 0.15;
     
-    const totalSlabVolume = area * (compressionM + BOVEDILLA.height);
-    const vbVolume = totalSlabVolume - bovedillaVoidVolume;
-
-    const calcMaterials = (volumeM3: number) => {
-      const cement = volumeM3 * MATERIAL_COEFFICIENTS.cement;
-      const sand = volumeM3 * MATERIAL_COEFFICIENTS.sand;
-      const gravel = volumeM3 * MATERIAL_COEFFICIENTS.gravel;
-      const water = volumeM3 * MATERIAL_COEFFICIENTS.water;
-
-      const BUCKETS_PER_M3 = 52.63;
-
-      return {
-        cement: {
-          bags: Math.ceil(cement),
-          cost: Math.ceil(cement) * inputs.cementPriceBag
-        },
-        sand: {
-          m3: parseFloat(sand.toFixed(3)),
-          buckets: Math.ceil(sand * BUCKETS_PER_M3),
-          cost: sand * inputs.sandPriceM3
-        },
-        gravel: {
-          m3: parseFloat(gravel.toFixed(3)),
-          buckets: Math.ceil(gravel * BUCKETS_PER_M3),
-          cost: gravel * inputs.gravelPriceM3
-        },
-        water: {
-          m3: parseFloat(water.toFixed(3)),
-          buckets: Math.ceil(water * BUCKETS_PER_M3)
-        }
-      };
+    const effectiveLength = length - (chainWidth * 2);
+    const effectiveWidth = width - (chainWidth * 2);
+    
+    const useLength = effectiveLength >= effectiveWidth;
+    const joistSpan = useLength ? effectiveLength : effectiveWidth;
+    const crossSpan = useLength ? effectiveWidth : effectiveLength;
+    
+    const numJoists = Math.floor(crossSpan / BOVEDILLA.axisDistance);
+    const joistPositions: number[] = [];
+    
+    for (let i = 1; i <= numJoists; i++) {
+      joistPositions.push(chainWidth + (i * BOVEDILLA.axisDistance) - (BOVEDILLA.axisDistance / 2));
+    }
+    
+    const bovedillaRows: { y: number; pieces: number; adjustmentWidth: number }[] = [];
+    const piecesPerRow = Math.floor(joistSpan / BOVEDILLA.length);
+    const adjustmentWidth = joistSpan - (piecesPerRow * BOVEDILLA.length);
+    
+    for (let i = 0; i < numJoists - 1; i++) {
+      bovedillaRows.push({
+        y: chainWidth + (i * BOVEDILLA.axisDistance) + (BOVEDILLA.axisDistance / 2) - (BOVEDILLA.width / 2),
+        pieces: piecesPerRow + (adjustmentWidth > 0.1 ? 1 : 0),
+        adjustmentWidth: adjustmentWidth > 0.1 ? adjustmentWidth : 0,
+      });
+    }
+    
+    return {
+      joistPositions,
+      bovedillaRows,
+      orientation: useLength ? "length" : "width" as "length" | "width",
+      chainWidth,
     };
+  };
 
-    const traditionalMaterials = calcMaterials(traditionalVolume);
-    const vbMaterials = calcMaterials(vbVolume);
-
-    const traditionalCost = traditionalMaterials.cement.cost + traditionalMaterials.sand.cost + traditionalMaterials.gravel.cost;
-    const vbCost = vbMaterials.cement.cost + vbMaterials.sand.cost + vbMaterials.gravel.cost;
-
-    const concreteSaved = traditionalVolume - vbVolume;
+  const calculate = () => {
+    if (dimensions.length <= 0 || dimensions.width <= 0) return;
+    
+    const area = dimensions.length * dimensions.width;
+    const compressionM = compressionLayer / 100;
+    const viguetaConfig = VIGUETA_DEPTHS[supportType];
+    
+    const traditionalVolume = area * COEFFICIENTS.traditionalThickness * COEFFICIENTS.waste;
+    const traditionalCement = traditionalVolume * COEFFICIENTS.cement;
+    const traditionalSand = traditionalVolume * COEFFICIENTS.sand;
+    const traditionalGravel = traditionalVolume * COEFFICIENTS.gravel;
+    const traditionalWater = traditionalVolume * COEFFICIENTS.water;
+    
+    const layout = calculateLayout();
+    const totalViguetaMeters = layout.joistPositions.length * 
+      (layout.orientation === "length" ? dimensions.length : dimensions.width);
+    
+    let totalBovedillas = 0;
+    layout.bovedillaRows.forEach(row => {
+      totalBovedillas += row.pieces;
+    });
+    
+    const vbConcreteVolume = traditionalVolume * COEFFICIENTS.vbSavingsFactor;
+    
+    const vbCement = vbConcreteVolume * COEFFICIENTS.cement;
+    const vbSand = vbConcreteVolume * COEFFICIENTS.sand;
+    const vbGravel = vbConcreteVolume * COEFFICIENTS.gravel;
+    const vbWater = vbConcreteVolume * COEFFICIENTS.water;
+    
+    const traditionalCost = 
+      (Math.ceil(traditionalCement) * prices.cement) +
+      (traditionalSand * prices.sand) +
+      (traditionalGravel * prices.gravel) +
+      (traditionalWater * prices.water);
+    
+    const vbCost = 
+      (Math.ceil(vbCement) * prices.cement) +
+      (vbSand * prices.sand) +
+      (vbGravel * prices.gravel) +
+      (vbWater * prices.water) +
+      (totalViguetaMeters * prices.vigueta * viguetaConfig.factor) +
+      (totalBovedillas * prices.bovedilla);
+    
+    const traditionalWeight = area * COEFFICIENTS.traditionalWeight;
+    const vbWeight = area * COEFFICIENTS.vbWeight;
+    
+    const baseDays = Math.ceil(area / (workers * 2));
+    const traditionalDays = baseDays;
+    const vbDays = Math.ceil(baseDays * (1 - COEFFICIENTS.timeReduction));
+    
+    const materialSaved = traditionalVolume - vbConcreteVolume;
     const costSaved = traditionalCost - vbCost;
-
+    const weightSaved = traditionalWeight - vbWeight;
+    const timeSaved = traditionalDays - vbDays;
+    
     setResults({
       traditional: {
-        volumeM3: parseFloat(traditionalVolume.toFixed(3)),
-        ...traditionalMaterials,
-        totalCost: traditionalCost
+        volume: traditionalVolume,
+        cement: Math.ceil(traditionalCement),
+        sand: { m3: traditionalSand, buckets: Math.ceil(traditionalSand * COEFFICIENTS.bucketsPerM3) },
+        gravel: { m3: traditionalGravel, buckets: Math.ceil(traditionalGravel * COEFFICIENTS.bucketsPerM3) },
+        water: { liters: Math.ceil(traditionalWater) },
+        totalCost: traditionalCost,
+        weight: traditionalWeight,
+        days: traditionalDays,
       },
-      viguetaBovedilla: {
-        volumeM3: parseFloat(vbVolume.toFixed(3)),
-        ...vbMaterials,
+      vb: {
+        volume: vbConcreteVolume,
+        cement: Math.ceil(vbCement),
+        sand: { m3: vbSand, buckets: Math.ceil(vbSand * COEFFICIENTS.bucketsPerM3) },
+        gravel: { m3: vbGravel, buckets: Math.ceil(vbGravel * COEFFICIENTS.bucketsPerM3) },
+        water: { liters: Math.ceil(vbWater) },
+        viguetas: { count: layout.joistPositions.length, meters: totalViguetaMeters },
+        bovedillas: totalBovedillas,
         totalCost: vbCost,
-        bovedillaCount: totalBovedillas,
-        viguetaCount: numViguetas
+        weight: vbWeight,
+        days: vbDays,
       },
       savings: {
-        concreteM3: parseFloat(concreteSaved.toFixed(3)),
-        concretePct: parseFloat(((concreteSaved / traditionalVolume) * 100).toFixed(1)),
-        costSaved: parseFloat(costSaved.toFixed(2)),
-        costPct: parseFloat(((costSaved / traditionalCost) * 100).toFixed(1))
-      }
+        material: materialSaved,
+        cost: costSaved,
+        weight: weightSaved,
+        time: timeSaved,
+        materialPct: (materialSaved / traditionalVolume) * 100,
+        costPct: traditionalCost > 0 ? (costSaved / traditionalCost) * 100 : 0,
+        weightPct: (weightSaved / traditionalWeight) * 100,
+        timePct: traditionalDays > 0 ? (timeSaved / traditionalDays) * 100 : 0,
+      },
+      layout,
     });
   };
+
+  const generatePDF = () => {
+    if (!results) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, pageWidth, 40, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("ESTRUCTURA 360", pageWidth / 2, 20, { align: "center" });
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text("Presupuesto Comparativo de Losa", pageWidth / 2, 30, { align: "center" });
+    
+    doc.setTextColor(0, 0, 0);
+    let yPos = 50;
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Datos del Proyecto", 14, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Dimensiones: ${dimensions.length}m x ${dimensions.width}m = ${(dimensions.length * dimensions.width).toFixed(2)} m²`, 14, yPos);
+    yPos += 6;
+    doc.text(`Tipo de Apoyo: ${VIGUETA_DEPTHS[supportType].label}`, 14, yPos);
+    yPos += 6;
+    doc.text(`Capa de Compresión: ${compressionLayer} cm`, 14, yPos);
+    yPos += 6;
+    doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 14, yPos);
+    yPos += 15;
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Comparativa de Materiales", 14, yPos);
+    yPos += 8;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Material", "Losa Tradicional (12cm)", "Losa Vigueta Bovedilla", "Ahorro"]],
+      body: [
+        ["Cemento (bultos)", results.traditional.cement.toString(), results.vb.cement.toString(), 
+         `${results.traditional.cement - results.vb.cement} bultos`],
+        ["Arena (m³)", results.traditional.sand.m3.toFixed(2), results.vb.sand.m3.toFixed(2),
+         `${(results.traditional.sand.m3 - results.vb.sand.m3).toFixed(2)} m³`],
+        ["Grava (m³)", results.traditional.gravel.m3.toFixed(2), results.vb.gravel.m3.toFixed(2),
+         `${(results.traditional.gravel.m3 - results.vb.gravel.m3).toFixed(2)} m³`],
+        ["Agua (litros)", results.traditional.water.liters.toString(), results.vb.water.liters.toString(),
+         `${results.traditional.water.liters - results.vb.water.liters} L`],
+        ["Viguetas", "N/A", `${results.vb.viguetas.count} pzas (${results.vb.viguetas.meters.toFixed(1)}m)`, "-"],
+        ["Bovedillas", "N/A", `${results.vb.bovedillas} pzas`, "-"],
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [15, 23, 42] },
+    });
+    
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Resumen de Costos", 14, yPos);
+    yPos += 8;
+    
+    autoTable(doc, {
+      startY: yPos,
+      head: [["Concepto", "Losa Tradicional", "Losa Vigueta Bovedilla"]],
+      body: [
+        ["Costo Total", `$${results.traditional.totalCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+         `$${results.vb.totalCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`],
+        ["Peso Total", `${results.traditional.weight.toLocaleString()} kg`, `${results.vb.weight.toLocaleString()} kg`],
+        [`Tiempo (${workers} trabajadores)`, `${results.traditional.days} días`, `${results.vb.days} días`],
+      ],
+      theme: "striped",
+      headStyles: { fillColor: [249, 115, 22] },
+    });
+    
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(34, 197, 94);
+    doc.roundedRect(14, yPos, pageWidth - 28, 25, 3, 3, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("AHORRO TOTAL CON LOSA VIGUETA BOVEDILLA", pageWidth / 2, yPos + 10, { align: "center" });
+    doc.setFontSize(14);
+    doc.text(`$${Math.abs(results.savings.cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })} (${Math.abs(results.savings.costPct).toFixed(1)}%)`, pageWidth / 2, yPos + 20, { align: "center" });
+    
+    doc.save(`presupuesto-losa-${dimensions.length}x${dimensions.width}m.pdf`);
+  };
+
+  const area = dimensions.length * dimensions.width;
 
   return (
     <div className="space-y-6">
       <Card className="border-0 shadow-xl shadow-primary/5 overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-accent to-primary w-full" />
+        <div className="h-2 bg-gradient-to-r from-primary via-accent to-primary w-full" />
         <CardHeader className="bg-muted/10">
-          <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
-            <Calculator className="h-6 w-6 text-accent" />
-            Comparador de Losas
-          </CardTitle>
-          <CardDescription>
-            Compara Losa Tradicional vs Losa Vigueta y Bovedilla de Poliestireno (f'c 250 con 2% desperdicio)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6 space-y-8">
-          <div className="grid gap-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-xl bg-primary/10">
+              <Scale className="h-6 w-6 text-primary" />
+            </div>
             <div>
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-accent" />
-                Precios de Materiales
-              </h3>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sandPrice">Arena ($/m³)</Label>
-                  <div className="relative">
+              <CardTitle className="text-xl sm:text-2xl">Comparador Integral de Losas</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
+                Losa Tradicional (12cm) vs Losa Vigueta Bovedilla - Mezcla f'c = 250 kg/cm²
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-6 space-y-8">
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="space-y-6">
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-4">
+                  <Ruler className="h-4 w-4" />
+                  Dimensiones de la Losa
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="length" className="text-sm">Largo (m)</Label>
                     <Input
-                      id="sandPrice"
+                      id="length"
                       type="number"
-                      value={inputs.sandPriceM3}
-                      onChange={(e) => handleInputChange('sandPriceM3', e.target.value)}
-                      className="h-12 text-lg pl-8"
-                      data-testid="input-sand-price"
+                      step="0.01"
+                      min="0"
+                      value={dimensions.length || ""}
+                      onChange={(e) => handleDimensionChange("length", e.target.value)}
+                      placeholder="0.00"
+                      className="h-12 text-lg font-medium"
+                      data-testid="input-comparator-length"
                     />
-                    <span className="absolute left-3 top-3 text-muted-foreground">$</span>
+                  </div>
+                  <div>
+                    <Label htmlFor="width" className="text-sm">Ancho (m)</Label>
+                    <Input
+                      id="width"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={dimensions.width || ""}
+                      onChange={(e) => handleDimensionChange("width", e.target.value)}
+                      placeholder="0.00"
+                      className="h-12 text-lg font-medium"
+                      data-testid="input-comparator-width"
+                    />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="gravelPrice">Grava ($/m³)</Label>
-                  <div className="relative">
-                    <Input
-                      id="gravelPrice"
-                      type="number"
-                      value={inputs.gravelPriceM3}
-                      onChange={(e) => handleInputChange('gravelPriceM3', e.target.value)}
-                      className="h-12 text-lg pl-8"
-                      data-testid="input-gravel-price"
-                    />
-                    <span className="absolute left-3 top-3 text-muted-foreground">$</span>
+                {area > 0 && (
+                  <div className="mt-3 p-3 bg-accent/10 rounded-lg text-center">
+                    <span className="text-sm text-muted-foreground">Área Total: </span>
+                    <span className="text-lg font-bold text-accent">{area.toFixed(2)} m²</span>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cementPrice">Cemento ($/bulto 50kg)</Label>
-                  <div className="relative">
-                    <Input
-                      id="cementPrice"
-                      type="number"
-                      value={inputs.cementPriceBag}
-                      onChange={(e) => handleInputChange('cementPriceBag', e.target.value)}
-                      className="h-12 text-lg pl-8"
-                      data-testid="input-cement-price"
-                    />
-                    <span className="absolute left-3 top-3 text-muted-foreground">$</span>
-                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4 block">
+                  Tipo de Apoyo
+                </Label>
+                <RadioGroup
+                  value={supportType}
+                  onValueChange={(v) => setSupportType(v as "walls" | "beams")}
+                  className="grid grid-cols-2 gap-3"
+                >
+                  <Label
+                    htmlFor="walls"
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      supportType === "walls" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="walls" id="walls" />
+                    <div>
+                      <div className="font-medium">Muros de Carga</div>
+                      <div className="text-xs text-muted-foreground">Vigueta estándar</div>
+                    </div>
+                  </Label>
+                  <Label
+                    htmlFor="beams"
+                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      supportType === "beams" 
+                        ? "border-primary bg-primary/5" 
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="beams" id="beams" />
+                    <div>
+                      <div className="font-medium">Trabes de Concreto</div>
+                      <div className="text-xs text-muted-foreground">Vigueta reforzada (+15%)</div>
+                    </div>
+                  </Label>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label className="text-sm mb-2 block">
+                  Capa de Compresión: <span className="font-bold text-accent">{compressionLayer} cm</span>
+                </Label>
+                <Slider
+                  min={3}
+                  max={7}
+                  step={1}
+                  value={[compressionLayer]}
+                  onValueChange={(v) => setCompressionLayer(v[0])}
+                  className="py-4"
+                  data-testid="slider-compression"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>3 cm (mínimo)</span>
+                  <span>7 cm (reforzado)</span>
                 </div>
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                <Layers className="h-5 w-5 text-accent" />
-                Dimensiones de la Losa
-              </h3>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="slabLength">Largo (m)</Label>
-                  <div className="relative">
-                    <Input
-                      id="slabLength"
-                      type="number"
-                      step="0.1"
-                      value={inputs.slabLength}
-                      onChange={(e) => handleInputChange('slabLength', e.target.value)}
-                      className="h-12 text-lg"
-                      data-testid="input-comparator-length"
-                    />
-                    <span className="absolute right-3 top-3 text-muted-foreground">m</span>
-                  </div>
+            <div className="space-y-6">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Precios de Materiales (desde 0)
+              </Label>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="cement" className="text-sm">Cemento ($/bulto)</Label>
+                  <Input
+                    id="cement"
+                    type="number"
+                    min="0"
+                    value={prices.cement || ""}
+                    onChange={(e) => handlePriceChange("cement", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-cement-price"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="slabWidth">Ancho (m)</Label>
-                  <div className="relative">
-                    <Input
-                      id="slabWidth"
-                      type="number"
-                      step="0.1"
-                      value={inputs.slabWidth}
-                      onChange={(e) => handleInputChange('slabWidth', e.target.value)}
-                      className="h-12 text-lg"
-                      data-testid="input-comparator-width"
-                    />
-                    <span className="absolute right-3 top-3 text-muted-foreground">m</span>
-                  </div>
+                <div>
+                  <Label htmlFor="sand" className="text-sm">Arena ($/m³)</Label>
+                  <Input
+                    id="sand"
+                    type="number"
+                    min="0"
+                    value={prices.sand || ""}
+                    onChange={(e) => handlePriceChange("sand", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-sand-price"
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="compression">Capa de Compresión (cm)</Label>
-                  <div className="relative">
-                    <Input
-                      id="compression"
-                      type="number"
-                      value={inputs.compressionLayer}
-                      onChange={(e) => handleInputChange('compressionLayer', e.target.value)}
-                      className="h-12 text-lg"
-                      data-testid="input-compression"
-                    />
-                    <span className="absolute right-3 top-3 text-muted-foreground">cm</span>
-                  </div>
+                <div>
+                  <Label htmlFor="gravel" className="text-sm">Grava ($/m³)</Label>
+                  <Input
+                    id="gravel"
+                    type="number"
+                    min="0"
+                    value={prices.gravel || ""}
+                    onChange={(e) => handlePriceChange("gravel", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-gravel-price"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="water" className="text-sm">Agua ($/litro)</Label>
+                  <Input
+                    id="water"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={prices.water || ""}
+                    onChange={(e) => handlePriceChange("water", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-water-price"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="vigueta" className="text-sm">Vigueta ($/metro)</Label>
+                  <Input
+                    id="vigueta"
+                    type="number"
+                    min="0"
+                    value={prices.vigueta || ""}
+                    onChange={(e) => handlePriceChange("vigueta", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-vigueta-price"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bovedilla" className="text-sm">Bovedilla ($/pieza)</Label>
+                  <Input
+                    id="bovedilla"
+                    type="number"
+                    min="0"
+                    value={prices.bovedilla || ""}
+                    onChange={(e) => handlePriceChange("bovedilla", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-bovedilla-price"
+                  />
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground mt-3">
-                Bovedilla de poliestireno: 1.22m × 0.63m | Distancia entre ejes: 70cm | Losa tradicional: 12cm espesor
-              </p>
+              
+              <div className="p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+                <strong>Mezcla f'c = 250 kg/cm² (2% desperdicio):</strong>
+                <ul className="mt-1 space-y-0.5">
+                  <li>• Cemento: 8.16 bultos/m³</li>
+                  <li>• Arena: 0.55 m³/m³ ({Math.ceil(0.55 * COEFFICIENTS.bucketsPerM3)} botes)</li>
+                  <li>• Grava: 0.65 m³/m³ ({Math.ceil(0.65 * COEFFICIENTS.bucketsPerM3)} botes)</li>
+                </ul>
+              </div>
             </div>
           </div>
 
-          <Button onClick={calculateSlabs} size="lg" className="w-full sm:w-auto" data-testid="button-calculate-comparison">
+          <Button 
+            onClick={calculate} 
+            size="lg" 
+            className="w-full sm:w-auto"
+            disabled={dimensions.length <= 0 || dimensions.width <= 0}
+            data-testid="button-calculate-comparison"
+          >
             <Calculator className="mr-2 h-5 w-5" />
             Calcular y Comparar
           </Button>
@@ -290,49 +586,72 @@ export function SlabComparator() {
 
       {results && (
         <>
-          <div className="grid lg:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-green-200 bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <TrendingDown className="h-6 w-6 text-green-600" />
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <TrendingDown className="h-5 w-5 text-green-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ahorro en Concreto</p>
-                    <p className="text-2xl font-bold text-green-600">{results.savings.concretePct}%</p>
-                  </div>
+                  <span className="text-sm text-muted-foreground">Ahorro Concreto</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{results.savings.concreteM3} m³ menos</p>
+                <div className="text-2xl font-bold text-green-600">
+                  {Math.abs(results.savings.materialPct).toFixed(0)}%
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {Math.abs(results.savings.material).toFixed(2)} m³ menos
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+            <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-accent/20 rounded-lg">
-                    <DollarSign className="h-6 w-6 text-accent" />
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                    <Scale className="h-5 w-5 text-blue-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Ahorro en Costo</p>
-                    <p className="text-2xl font-bold text-accent">${results.savings.costSaved.toLocaleString()}</p>
-                  </div>
+                  <span className="text-sm text-muted-foreground">Ahorro Costo</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{results.savings.costPct}% menos en materiales</p>
+                <div className="text-2xl font-bold text-blue-600">
+                  ${Math.abs(results.savings.cost).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {results.savings.cost >= 0 ? "menos" : "más"} ({Math.abs(results.savings.costPct).toFixed(1)}%)
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-primary/20 rounded-lg">
-                    <Package className="h-6 w-6 text-primary" />
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                    <Weight className="h-5 w-5 text-purple-600" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Sistema V&B</p>
-                    <p className="text-2xl font-bold text-primary">{results.viguetaBovedilla.viguetaCount} viguetas</p>
-                  </div>
+                  <span className="text-sm text-muted-foreground">Ahorro Peso</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{results.viguetaBovedilla.bovedillaCount} bovedillas</p>
+                <div className="text-2xl font-bold text-purple-600">
+                  {Math.abs(results.savings.weight).toLocaleString()} kg
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {(results.savings.weight / area).toFixed(0)} kg/m² menos
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/20 dark:to-background">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                    <Clock className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <span className="text-sm text-muted-foreground">Ahorro Tiempo</span>
+                </div>
+                <div className="text-2xl font-bold text-orange-600">
+                  {results.savings.time} días
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {Math.abs(results.savings.timePct).toFixed(0)}% más rápido
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -340,7 +659,6 @@ export function SlabComparator() {
           <Card className="overflow-hidden">
             <CardHeader className="bg-muted/30">
               <CardTitle className="text-lg">Tabla Comparativa de Materiales</CardTitle>
-              <CardDescription>Cantidades en m³, botes de 19L y costos estimados</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -348,81 +666,79 @@ export function SlabComparator() {
                   <thead>
                     <tr className="border-b bg-muted/20">
                       <th className="text-left p-4 font-semibold">Material</th>
-                      <th className="text-center p-4 font-semibold" colSpan={3}>
-                        <Badge variant="outline" className="bg-gray-100">Losa Tradicional (12cm)</Badge>
+                      <th className="text-center p-4 font-semibold">
+                        <div className="flex flex-col items-center">
+                          <span>Losa Tradicional</span>
+                          <Badge variant="outline" className="mt-1">12 cm</Badge>
+                        </div>
                       </th>
-                      <th className="text-center p-4 font-semibold" colSpan={3}>
-                        <Badge className="bg-accent text-white">Vigueta y Bovedilla</Badge>
+                      <th className="text-center p-4 font-semibold bg-accent/5">
+                        <div className="flex flex-col items-center">
+                          <span>Losa Vigueta Bovedilla</span>
+                          <Badge className="mt-1 bg-accent">Recomendado</Badge>
+                        </div>
                       </th>
-                    </tr>
-                    <tr className="border-b bg-muted/10 text-xs text-muted-foreground">
-                      <th className="text-left p-3"></th>
-                      <th className="text-center p-3">Cantidad</th>
-                      <th className="text-center p-3">Botes 19L</th>
-                      <th className="text-center p-3">Costo</th>
-                      <th className="text-center p-3">Cantidad</th>
-                      <th className="text-center p-3">Botes 19L</th>
-                      <th className="text-center p-3">Costo</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="p-4 font-medium flex items-center gap-2">
-                        <Box className="h-4 w-4 text-gray-500" />
-                        Volumen Total
-                      </td>
-                      <td className="text-center p-4">{results.traditional.volumeM3} m³</td>
-                      <td className="text-center p-4 text-muted-foreground">{Math.ceil(results.traditional.volumeM3 * MATERIAL_COEFFICIENTS.bucketsPerM3)}</td>
-                      <td className="text-center p-4">-</td>
-                      <td className="text-center p-4 font-semibold text-accent">{results.viguetaBovedilla.volumeM3} m³</td>
-                      <td className="text-center p-4 text-muted-foreground">{Math.ceil(results.viguetaBovedilla.volumeM3 * MATERIAL_COEFFICIENTS.bucketsPerM3)}</td>
-                      <td className="text-center p-4">-</td>
-                    </tr>
-                    <tr className="border-b bg-muted/5">
-                      <td className="p-4 font-medium">Cemento (bultos 50kg)</td>
-                      <td className="text-center p-4">{results.traditional.cement.bags}</td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4">${results.traditional.cement.cost.toLocaleString()}</td>
-                      <td className="text-center p-4 font-semibold text-accent">{results.viguetaBovedilla.cement.bags}</td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4">${results.viguetaBovedilla.cement.cost.toLocaleString()}</td>
+                      <td className="p-4 font-medium">Volumen Concreto</td>
+                      <td className="p-4 text-center">{results.traditional.volume.toFixed(2)} m³</td>
+                      <td className="p-4 text-center bg-accent/5 font-semibold text-accent">{results.vb.volume.toFixed(2)} m³</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="p-4 font-medium">Arena (m³)</td>
-                      <td className="text-center p-4">{results.traditional.sand.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.traditional.sand.buckets}</td>
-                      <td className="text-center p-4">${results.traditional.sand.cost.toLocaleString()}</td>
-                      <td className="text-center p-4 font-semibold text-accent">{results.viguetaBovedilla.sand.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.viguetaBovedilla.sand.buckets}</td>
-                      <td className="text-center p-4">${results.viguetaBovedilla.sand.cost.toLocaleString()}</td>
-                    </tr>
-                    <tr className="border-b bg-muted/5">
-                      <td className="p-4 font-medium">Grava (m³)</td>
-                      <td className="text-center p-4">{results.traditional.gravel.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.traditional.gravel.buckets}</td>
-                      <td className="text-center p-4">${results.traditional.gravel.cost.toLocaleString()}</td>
-                      <td className="text-center p-4 font-semibold text-accent">{results.viguetaBovedilla.gravel.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.viguetaBovedilla.gravel.buckets}</td>
-                      <td className="text-center p-4">${results.viguetaBovedilla.gravel.cost.toLocaleString()}</td>
+                      <td className="p-4 font-medium">Cemento</td>
+                      <td className="p-4 text-center">{results.traditional.cement} bultos</td>
+                      <td className="p-4 text-center bg-accent/5">{results.vb.cement} bultos</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="p-4 font-medium flex items-center gap-2">
-                        <Droplets className="h-4 w-4 text-blue-500" />
-                        Agua (m³)
+                      <td className="p-4 font-medium">Arena</td>
+                      <td className="p-4 text-center">
+                        {results.traditional.sand.m3.toFixed(2)} m³
+                        <span className="text-muted-foreground text-xs block">({results.traditional.sand.buckets} botes)</span>
                       </td>
-                      <td className="text-center p-4">{results.traditional.water.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.traditional.water.buckets}</td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4">{results.viguetaBovedilla.water.m3}</td>
-                      <td className="text-center p-4 text-muted-foreground">{results.viguetaBovedilla.water.buckets}</td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
+                      <td className="p-4 text-center bg-accent/5">
+                        {results.vb.sand.m3.toFixed(2)} m³
+                        <span className="text-muted-foreground text-xs block">({results.vb.sand.buckets} botes)</span>
+                      </td>
                     </tr>
-                    <tr className="bg-primary/5 font-bold">
-                      <td className="p-4">TOTAL</td>
-                      <td className="text-center p-4" colSpan={2}>{results.traditional.volumeM3} m³</td>
-                      <td className="text-center p-4 text-lg">${results.traditional.totalCost.toLocaleString()}</td>
-                      <td className="text-center p-4 text-accent" colSpan={2}>{results.viguetaBovedilla.volumeM3} m³</td>
-                      <td className="text-center p-4 text-lg text-accent">${results.viguetaBovedilla.totalCost.toLocaleString()}</td>
+                    <tr className="border-b">
+                      <td className="p-4 font-medium">Grava</td>
+                      <td className="p-4 text-center">
+                        {results.traditional.gravel.m3.toFixed(2)} m³
+                        <span className="text-muted-foreground text-xs block">({results.traditional.gravel.buckets} botes)</span>
+                      </td>
+                      <td className="p-4 text-center bg-accent/5">
+                        {results.vb.gravel.m3.toFixed(2)} m³
+                        <span className="text-muted-foreground text-xs block">({results.vb.gravel.buckets} botes)</span>
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-4 font-medium">Agua</td>
+                      <td className="p-4 text-center">{results.traditional.water.liters} litros</td>
+                      <td className="p-4 text-center bg-accent/5">{results.vb.water.liters} litros</td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-4 font-medium">Viguetas</td>
+                      <td className="p-4 text-center text-muted-foreground">N/A</td>
+                      <td className="p-4 text-center bg-accent/5">
+                        {results.vb.viguetas.count} pzas
+                        <span className="text-muted-foreground text-xs block">({results.vb.viguetas.meters.toFixed(1)} m totales)</span>
+                      </td>
+                    </tr>
+                    <tr className="border-b">
+                      <td className="p-4 font-medium">Bovedillas (1.22×0.63m)</td>
+                      <td className="p-4 text-center text-muted-foreground">N/A</td>
+                      <td className="p-4 text-center bg-accent/5">{results.vb.bovedillas} piezas</td>
+                    </tr>
+                    <tr className="border-b bg-muted/20">
+                      <td className="p-4 font-bold">Costo Total Materiales</td>
+                      <td className="p-4 text-center font-bold text-lg">
+                        ${results.traditional.totalCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-center bg-accent/10 font-bold text-lg text-accent">
+                        ${results.vb.totalCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -430,186 +746,248 @@ export function SlabComparator() {
             </CardContent>
           </Card>
 
-          <Card className="overflow-hidden">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Plano de Distribución - Sistema Vigueta y Bovedilla</CardTitle>
-              <CardDescription>Esquema de planta con viguetas cada 70cm y bovedillas de 1.22 × 0.63 m</CardDescription>
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Simulador de Tiempo de Obra
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Trabajadores:</span>
+                  <Badge variant="secondary" className="text-lg px-3">{workers}</Badge>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <SlabPlanSVG 
-                length={inputs.slabLength} 
-                width={inputs.slabWidth} 
-                viguetaCount={results.viguetaBovedilla.viguetaCount}
-                bovedillaCount={results.viguetaBovedilla.bovedillaCount}
+            <CardContent className="space-y-6">
+              <Slider
+                min={1}
+                max={30}
+                step={1}
+                value={[workers]}
+                onValueChange={(v) => {
+                  setWorkers(v[0]);
+                  if (results) calculate();
+                }}
+                className="py-4"
+                data-testid="slider-workers"
               />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>1 persona</span>
+                <span>30 personas</span>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="p-6 rounded-xl bg-muted/30 border">
+                  <div className="text-sm text-muted-foreground mb-2">Losa Tradicional</div>
+                  <div className="text-4xl font-bold">{results.traditional.days}</div>
+                  <div className="text-sm text-muted-foreground">días de trabajo</div>
+                </div>
+                <div className="p-6 rounded-xl bg-accent/10 border-2 border-accent">
+                  <div className="text-sm text-accent font-medium mb-2">Losa Vigueta Bovedilla</div>
+                  <div className="text-4xl font-bold text-accent">{results.vb.days}</div>
+                  <div className="text-sm text-muted-foreground">días de trabajo</div>
+                  <Badge className="mt-2 bg-green-500">-{results.savings.timePct.toFixed(0)}% tiempo</Badge>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-accent/5 to-primary/5 border-accent/30">
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-slate-900 text-white">
+              <CardTitle className="text-lg">Plano de Distribución</CardTitle>
+              <CardDescription className="text-slate-300">
+                Vista técnica estilo AutoCAD - Viguetas cada 70cm con bovedilla de poliestireno (1.22×0.63m)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 bg-slate-900">
+              <div className="p-4 overflow-auto">
+                <svg
+                  ref={svgRef}
+                  viewBox={`0 0 ${Math.max(dimensions.length * 50 + 100, 400)} ${Math.max(dimensions.width * 50 + 100, 300)}`}
+                  className="w-full h-auto min-h-[300px] max-h-[500px]"
+                  style={{ background: "#1e293b" }}
+                >
+                  <defs>
+                    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                      <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#334155" strokeWidth="0.5" />
+                    </pattern>
+                  </defs>
+                  
+                  <rect width="100%" height="100%" fill="url(#grid)" />
+                  
+                  <g transform="translate(50, 50)">
+                    <rect
+                      x="0"
+                      y="0"
+                      width={dimensions.length * 50}
+                      height={dimensions.width * 50}
+                      fill="none"
+                      stroke="#94a3b8"
+                      strokeWidth="3"
+                    />
+                    
+                    <rect
+                      x={results.layout.chainWidth * 50}
+                      y={results.layout.chainWidth * 50}
+                      width={(dimensions.length - results.layout.chainWidth * 2) * 50}
+                      height={(dimensions.width - results.layout.chainWidth * 2) * 50}
+                      fill="none"
+                      stroke="#fbbf24"
+                      strokeWidth="1"
+                      strokeDasharray="5,3"
+                    />
+                    
+                    {results.layout.joistPositions.map((pos, i) => (
+                      <g key={`joist-${i}`}>
+                        <line
+                          x1={results.layout.chainWidth * 50}
+                          y1={pos * 50}
+                          x2={(dimensions.length - results.layout.chainWidth) * 50}
+                          y2={pos * 50}
+                          stroke="#22d3ee"
+                          strokeWidth="4"
+                        />
+                        <text
+                          x={-10}
+                          y={pos * 50 + 4}
+                          fill="#22d3ee"
+                          fontSize="10"
+                          textAnchor="end"
+                        >
+                          V{i + 1}
+                        </text>
+                      </g>
+                    ))}
+                    
+                    {results.layout.bovedillaRows.map((row, rowIdx) => {
+                      const pieces = [];
+                      for (let p = 0; p < row.pieces; p++) {
+                        const isAdjustment = p === row.pieces - 1 && row.adjustmentWidth > 0;
+                        const pieceWidth = isAdjustment ? row.adjustmentWidth : BOVEDILLA.length;
+                        pieces.push(
+                          <rect
+                            key={`bov-${rowIdx}-${p}`}
+                            x={(results.layout.chainWidth + p * BOVEDILLA.length) * 50}
+                            y={row.y * 50}
+                            width={pieceWidth * 50 - 2}
+                            height={BOVEDILLA.width * 50 - 2}
+                            fill={isAdjustment ? "#fb923c" : "#f97316"}
+                            fillOpacity="0.3"
+                            stroke="#f97316"
+                            strokeWidth="1"
+                          />
+                        );
+                      }
+                      return pieces;
+                    })}
+                    
+                    <text x={dimensions.length * 25} y={-15} fill="#e2e8f0" fontSize="12" textAnchor="middle">
+                      {dimensions.length.toFixed(2)} m
+                    </text>
+                    <text
+                      x={dimensions.length * 50 + 20}
+                      y={dimensions.width * 25}
+                      fill="#e2e8f0"
+                      fontSize="12"
+                      textAnchor="middle"
+                      transform={`rotate(90, ${dimensions.length * 50 + 20}, ${dimensions.width * 25})`}
+                    >
+                      {dimensions.width.toFixed(2)} m
+                    </text>
+                  </g>
+                  
+                  <g transform={`translate(${dimensions.length * 50 + 80}, 60)`}>
+                    <text fill="#e2e8f0" fontSize="11" fontWeight="bold">Leyenda:</text>
+                    <line x1="0" y1="20" x2="30" y2="20" stroke="#22d3ee" strokeWidth="4" />
+                    <text x="40" y="24" fill="#94a3b8" fontSize="10">Vigueta</text>
+                    <rect x="0" y="35" width="30" height="15" fill="#f97316" fillOpacity="0.3" stroke="#f97316" />
+                    <text x="40" y="47" fill="#94a3b8" fontSize="10">Bovedilla</text>
+                    <rect x="0" y="60" width="30" height="15" fill="#fb923c" fillOpacity="0.3" stroke="#fb923c" />
+                    <text x="40" y="72" fill="#94a3b8" fontSize="10">Ajuste</text>
+                    <line x1="0" y1="85" x2="30" y2="85" stroke="#fbbf24" strokeWidth="1" strokeDasharray="5,3" />
+                    <text x="40" y="89" fill="#94a3b8" fontSize="10">Cadena</text>
+                  </g>
+                </svg>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Resumen de Ahorro con Sistema Vigueta y Bovedilla
+              <CardTitle className="text-lg text-green-700 dark:text-green-400 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5" />
+                Ventajas del Sistema Losa Vigueta Bovedilla
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-accent">{results.savings.concretePct}%</p>
-                  <p className="text-sm text-muted-foreground">Menos concreto</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <TrendingDown className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">30% Menos Concreto</div>
+                    <div className="text-xs text-muted-foreground">Ahorro significativo en materiales</div>
+                  </div>
                 </div>
-                <div className="bg-white/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-green-600">${results.savings.costSaved.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Ahorro en materiales</p>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <Weight className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">{((COEFFICIENTS.traditionalWeight - COEFFICIENTS.vbWeight))} kg/m² Menos</div>
+                    <div className="text-xs text-muted-foreground">Menor carga en la estructura</div>
+                  </div>
                 </div>
-                <div className="bg-white/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-primary">{results.savings.concreteM3} m³</p>
-                  <p className="text-sm text-muted-foreground">Concreto ahorrado</p>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <Clock className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">40% Más Rápido</div>
+                    <div className="text-xs text-muted-foreground">Instalación eficiente</div>
+                  </div>
                 </div>
-                <div className="bg-white/50 rounded-lg p-4 text-center">
-                  <p className="text-3xl font-bold text-blue-600">~45%</p>
-                  <p className="text-sm text-muted-foreground">Menos peso estructural</p>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <Scale className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Aislamiento Térmico</div>
+                    <div className="text-xs text-muted-foreground">Poliestireno como aislante</div>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-6 p-4 bg-white/50 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <ArrowRight className="h-4 w-4 text-accent" />
-                  Ventajas adicionales del sistema V&B
-                </h4>
-                <ul className="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Menor carga a la estructura
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Mayor aislamiento térmico
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Instalación más rápida
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Menor uso de cimbra
-                  </li>
-                </ul>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <Ruler className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Claros Mayores</div>
+                    <div className="text-xs text-muted-foreground">Hasta 8m sin apoyos intermedios</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <Users className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Menos Mano de Obra</div>
+                    <div className="text-xs text-muted-foreground">Instalación simplificada</div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
+
+          <div className="flex justify-center">
+            <Button onClick={generatePDF} size="lg" className="gap-2" data-testid="button-generate-pdf">
+              <FileDown className="h-5 w-5" />
+              Generar Presupuesto PDF
+            </Button>
+          </div>
         </>
       )}
-    </div>
-  );
-}
-
-function SlabPlanSVG({ length, width, viguetaCount, bovedillaCount }: { 
-  length: number; 
-  width: number; 
-  viguetaCount: number;
-  bovedillaCount: number;
-}) {
-  const scale = 50;
-  const padding = 40;
-  const svgWidth = length * scale + padding * 2;
-  const svgHeight = width * scale + padding * 2;
-
-  const viguetaSpacing = (width * scale) / (viguetaCount - 1);
-  const bovedillaWidth = 0.63 * scale;
-  const bovedillaLength = 1.22 * scale;
-
-  const bovedillasPerRow = Math.floor((length * scale) / bovedillaLength);
-  const numRows = viguetaCount - 1;
-
-  return (
-    <div className="overflow-x-auto bg-slate-900 rounded-xl p-4">
-      <svg 
-        width={Math.max(svgWidth, 400)} 
-        height={Math.max(svgHeight, 300)} 
-        viewBox={`0 0 ${Math.max(svgWidth, 400)} ${Math.max(svgHeight, 300)}`}
-        className="mx-auto"
-      >
-        <defs>
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#334155" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-
-        <rect width="100%" height="100%" fill="#0f172a"/>
-        <rect x={padding} y={padding} width={length * scale} height={width * scale} fill="url(#grid)" stroke="#475569" strokeWidth="2"/>
-
-        {Array.from({ length: numRows }).map((_, rowIndex) => {
-          const y = padding + rowIndex * viguetaSpacing + viguetaSpacing / 2 - bovedillaWidth / 2;
-          return Array.from({ length: bovedillasPerRow }).map((_, colIndex) => {
-            const x = padding + colIndex * bovedillaLength;
-            return (
-              <g key={`bovedilla-${rowIndex}-${colIndex}`}>
-                <rect
-                  x={x + 2}
-                  y={y + 2}
-                  width={bovedillaLength - 4}
-                  height={bovedillaWidth - 4}
-                  fill="#f97316"
-                  fillOpacity="0.3"
-                  stroke="#f97316"
-                  strokeWidth="1"
-                  rx="2"
-                />
-                <text
-                  x={x + bovedillaLength / 2}
-                  y={y + bovedillaWidth / 2 + 3}
-                  textAnchor="middle"
-                  fill="#f97316"
-                  fontSize="8"
-                  fontWeight="bold"
-                >
-                  B
-                </text>
-              </g>
-            );
-          });
-        })}
-
-        {Array.from({ length: viguetaCount }).map((_, index) => {
-          const y = padding + index * viguetaSpacing;
-          return (
-            <g key={`vigueta-${index}`}>
-              <line
-                x1={padding}
-                y1={y}
-                x2={padding + length * scale}
-                y2={y}
-                stroke="#22d3ee"
-                strokeWidth="4"
-              />
-              <text
-                x={padding - 10}
-                y={y + 4}
-                textAnchor="end"
-                fill="#22d3ee"
-                fontSize="10"
-              >
-                V{index + 1}
-              </text>
-            </g>
-          );
-        })}
-
-        <text x={padding + (length * scale) / 2} y={padding - 15} textAnchor="middle" fill="#94a3b8" fontSize="12">
-          {length}m
-        </text>
-        <text x={padding - 25} y={padding + (width * scale) / 2} textAnchor="middle" fill="#94a3b8" fontSize="12" transform={`rotate(-90 ${padding - 25} ${padding + (width * scale) / 2})`}>
-          {width}m
-        </text>
-
-        <g transform={`translate(${padding}, ${padding + width * scale + 20})`}>
-          <rect x="0" y="0" width="15" height="10" fill="#22d3ee" />
-          <text x="20" y="9" fill="#94a3b8" fontSize="10">Vigueta (cada 70cm)</text>
-          
-          <rect x="120" y="0" width="15" height="10" fill="#f97316" fillOpacity="0.3" stroke="#f97316" />
-          <text x="140" y="9" fill="#94a3b8" fontSize="10">Bovedilla (1.22 × 0.63m)</text>
-        </g>
-      </svg>
     </div>
   );
 }

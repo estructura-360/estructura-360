@@ -1,0 +1,83 @@
+1. Arquitectura de la Aplicación
+
+Organiza el contenido en estas secciones:
+
+Información Técnica: Detalles de la resistencia f 
+′
+ c=250 kg/cm 
+2
+ .
+
+Calculadora y Comparador Integral: Formulario único donde el usuario configura su proyecto.
+
+Resultados y Materiales: Desglose detallado para compra.
+
+Plano de Distribución: Esquema técnico dinámico.
+
+Acerca de: Ventajas de ahorro, peso y tiempos.
+
+2. Lógica de Calculadora (Integración Losa y Muro)
+
+Entrada de Datos:
+
+Dimensiones de la losa (Largo y Ancho) iniciando en 0.
+
+Configuración de Apoyos: Opción para indicar si la losa descansa sobre Muros de Carga o Trabes de Concreto. Esta selección debe influir en el peralte de la vigueta y el costo estructural.
+
+Precios desde 0: El cliente debe ingresar el costo de: Cemento (bulto), Arena (m 
+3
+ ), Grava (m 
+3
+ ), Agua (Litro), Vigueta (metro) y Bovedilla de Poliestireno (pieza).
+
+Cálculo de Mezcla (f 
+′
+ c=250 kg/cm 
+2
+ ): Aplicar 2% de desperdicio general.
+
+Cemento: 8.16 bultos/m 
+3
+ .
+
+Arena: 0.55 m 
+3
+ /m 
+3
+  (y su equivalente en botes).
+
+Grava: 0.65 m 
+3
+ /m 
+3
+  (y su equivalente en botes).
+
+Lógica de Comparación:
+
+Losa Tradicional: Base de 12 cm de espesor.
+
+Losa Vigueta Bovedilla: Aplicar un 30% de ahorro en materiales de estructura y concreto comparado con la tradicional.
+
+3. Distribución y Plano Técnico (SVG)
+
+Cálculo de Viguetas: Dividir el lado más largo entre 0.70 m.
+
+Regla de Orillas: No colocar vigueta en los extremos laterales (considerar el espacio para la cadena de acero perimetral).
+
+Ajuste de Huecos: En caso de quedar espacios sobrantes, rellenar con piezas de ajuste de bovedilla de poliestireno (1.22×0.63 m). No permitir huecos vacíos en el plano.
+
+Visualización: Fondo tipo AutoCAD oscuro, líneas cian para viguetas, rectángulos para bovedillas y cotas de medida.
+
+4. Comparativa de Peso y Tiempo
+
+Diferencia de Peso: Mostrar cuántos kg/m² se ahorran con el poliestireno.
+
+Simulador de Obra: Slider de 1 a 30 personas. Comparar días de ejecución: la Losa Vigueta Bovedilla debe mostrar una reducción del 40% en tiempo respecto a la Losa Tradicional.
+
+5. Interfaz de Usuario (UX)
+
+Usar siempre el nombre completo: Losa Vigueta Bovedilla.
+
+Diseño limpio, visual y fácil de entender para un cliente no experto.
+
+Botón para "Generar Presupuesto PDF" que incluya el plano de distribución.

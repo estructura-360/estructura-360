@@ -47,24 +47,33 @@ Database tables:
 ## Key Features
 
 ### Slab Comparator (SlabComparator component)
-Compares Traditional Slab (12cm) vs Vigueta y Bovedilla (V&B) system with polystyrene:
+Compares Losa Tradicional (12cm) vs Losa Vigueta Bovedilla with polystyrene:
 
 **Material Coefficients (f'c 250 with 2% waste):**
 - Cement: 8.16 bags (50kg) per m³
 - Sand: 0.55 m³ per m³
 - Gravel: 0.65 m³ per m³
-- Water: 0.24 m³ per m³
+- Water: 200 liters per m³
 - Bucket conversion: 52.63 buckets (19L) per m³
 
 **Bovedilla Specifications:**
 - Dimensions: 1.22m × 0.63m × 0.12m
 - Axis distance: 70cm between viguetas
 
+**Comparison Logic:**
+- V&B applies 30% material savings vs traditional slab
+- Weight: Traditional 288 kg/m² vs V&B 180 kg/m²
+- Time: 40% reduction with V&B system
+
 **Features:**
-- User inputs: material prices, slab dimensions, compression layer thickness
-- Outputs: material quantities in m³ and 19L buckets, costs, savings
-- SVG floor plan visualization with dark background
-- Savings summary panel with percentage and absolute values
+- Dimensions input starting at 0
+- Support type selector: Muros de Carga vs Trabes de Concreto (+15% vigueta cost)
+- Price inputs: Cement, Sand, Gravel, Water, Vigueta, Bovedilla
+- Compression layer slider (3-7 cm)
+- Comparative materials table with costs
+- SVG floor plan: AutoCAD dark style, cyan viguetas, orange bovedillas
+- Worker slider (1-30) for time estimation
+- PDF budget generation with comparison table
 
 ### Build System
 - **Development**: Vite dev server with HMR, Express backend served alongside
