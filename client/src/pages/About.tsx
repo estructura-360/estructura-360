@@ -49,8 +49,8 @@ const features = [
 ];
 
 const benefits = [
-  "Empresas socialmente responsables validadas por ingenieros y arquitectos",
-  "Cálculos validados por ingenieros estructuristas certificados",
+  "Cálculos validados por ingenieros y arquitectos",
+  "Empresas socialmente responsables certificadas",
   "Funciona offline en obra - sincroniza automáticamente con WiFi",
   "Bitácora fotográfica con GPS para documentación profesional",
   "Presupuestos en PDF listos para presentar a clientes",
@@ -239,7 +239,7 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed">
-                  Trabajar exclusivamente con <strong className="text-primary">empresas socialmente responsables validadas por ingenieros y arquitectos</strong>. 
+                  Ofrecer <strong className="text-primary">cálculos validados por ingenieros y arquitectos</strong>, trabajando con empresas socialmente responsables. 
                   Digitalizar la construcción ligera con herramientas que reducen el impacto ambiental: 
                   <strong className="text-accent"> 30% menos uso de agua</strong> y <strong className="text-accent">70% menos cimbrado</strong> que la losa tradicional.
                 </p>
@@ -312,7 +312,7 @@ export default function AboutPage() {
                 <h3 className="font-bold text-primary mb-1">Apoyo al Medio Ambiente</h3>
                 <p className="text-sm text-muted-foreground">
                   El sistema V&B utiliza <strong className="text-green-700">30% menos agua</strong> y <strong className="text-green-700">70% menos cimbrado</strong> que la losa tradicional. 
-                  Trabajamos con empresas socialmente responsables validadas por ingenieros y arquitectos.
+                  Cálculos validados por ingenieros y arquitectos. Empresas socialmente responsables.
                 </p>
               </div>
             </div>

@@ -307,7 +307,7 @@ export default function TechnicalPage() {
                   <h3 className="text-xl font-bold text-primary mb-2">Apoyo al Medio Ambiente</h3>
                   <p className="text-muted-foreground">
                     El sistema V&B utiliza <strong className="text-accent">30% menos agua</strong> y <strong className="text-accent">70% menos cimbrado</strong> que la losa tradicional. 
-                    Trabajamos con <strong className="text-primary">empresas socialmente responsables validadas por ingenieros y arquitectos</strong>. 
+                    <strong className="text-primary">Cálculos validados por ingenieros y arquitectos.</strong> Empresas socialmente responsables. 
                     Es el método preferido por su balance entre costo, velocidad y sostenibilidad.
                   </p>
                 </div>
@@ -561,7 +561,7 @@ export default function TechnicalPage() {
                   <h3 className="font-bold text-white mb-1">Apoyo al Medio Ambiente</h3>
                   <p className="text-primary-foreground/80 text-sm">
                     El sistema V&B utiliza <strong className="text-accent">30% menos agua</strong> y <strong className="text-accent">70% menos cimbrado</strong> que la losa tradicional. 
-                    Trabajamos con <strong className="text-white">empresas socialmente responsables validadas por ingenieros y arquitectos</strong>.
+                    <strong className="text-white">Cálculos validados por ingenieros y arquitectos.</strong> Empresas socialmente responsables.
                   </p>
                 </div>
               </div>

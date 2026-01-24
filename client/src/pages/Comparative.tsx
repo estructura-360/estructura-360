@@ -101,7 +101,7 @@ const myths = [
   },
   {
     myth: "Contamina el medio ambiente igual que lo tradicional",
-    reality: "30% menos uso de agua, 70% menos cimbrado. Trabajamos con empresas socialmente responsables validadas por ingenieros y arquitectos.",
+    reality: "30% menos uso de agua, 70% menos cimbrado. Cálculos validados por ingenieros y arquitectos. Empresas socialmente responsables.",
     icon: Leaf,
   },
 ];
@@ -109,7 +109,7 @@ const myths = [
 const benefits = [
   {
     title: "Apoyo al Medio Ambiente",
-    description: "30% menos uso de agua y 70% menos cimbrado. Empresas socialmente responsables validadas por ingenieros y arquitectos",
+    description: "30% menos uso de agua y 70% menos cimbrado. Empresas socialmente responsables",
     icon: Leaf,
     stat: "-30%",
     color: "text-green-500",
@@ -129,8 +129,8 @@ const benefits = [
     color: "text-purple-500",
   },
   {
-    title: "Calidad Certificada",
-    description: "Fabricación en planta con empresas socialmente responsables validadas por ingenieros-arquitectos",
+    title: "Cálculos Validados",
+    description: "Cálculos validados por ingenieros y arquitectos. Empresas socialmente responsables",
     icon: Award,
     stat: "Validado",
     color: "text-orange-500",
@@ -345,7 +345,7 @@ export default function ComparativePage() {
                     
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                       <p className="text-sm leading-relaxed text-primary-foreground/80">
-                        <strong className="text-accent">Empresas socialmente responsables</strong> validadas por ingenieros y arquitectos. 
+                        <strong className="text-accent">Cálculos validados por ingenieros y arquitectos.</strong> Empresas socialmente responsables. 
                         Construcción que cuida el planeta.
                       </p>
                     </div>
