@@ -49,8 +49,8 @@ const VIGUETA_TYPES = {
   },
   pretensada: { 
     label: "Vigueta Pretensada", 
-    description: "Más pesada y robusta (+10%)",
-    factor: 1.10,
+    description: "Más pesada y robusta",
+    factor: 1.0,
   },
 };
 
@@ -143,19 +143,18 @@ export default function CalculatorPage() {
     const calculatedPeralte = getPeralteFromClaro(shortestSide);
     
     const viguetaConfig = VIGUETA_TYPES[values.viguetaType];
-    const viguetaPriceWithFactor = values.viguetaPrice * viguetaConfig.factor;
     
     const specs = { 
-      beamDepth: calculatedPeralte, 
+      beamDepth: values.beamDepth, 
       viguetaType: values.viguetaType,
       viguetaTypeLabel: viguetaConfig.label,
       polystyreneDensity: values.density,
       climate: values.climate,
       dimensions: { length: values.length, width: values.width },
       prices: {
-        vigueta: viguetaPriceWithFactor,
+        vigueta: values.viguetaPrice,
         bovedilla: values.bovedillaPrice,
-        peralte: calculatedPeralte,
+        peralte: values.beamDepth,
         viguetaType: values.viguetaType
       }
     };
@@ -531,7 +530,7 @@ export default function CalculatorPage() {
                                         />
                                         <div className="text-center">
                                           <p className="text-xs font-semibold">Pretensada</p>
-                                          <p className="text-xs text-muted-foreground">Robusta (+10%)</p>
+                                          <p className="text-xs text-muted-foreground">Robusta</p>
                                         </div>
                                       </div>
                                     </label>
@@ -548,14 +547,43 @@ export default function CalculatorPage() {
                             <DollarSign className="h-4 w-4" />
                             Precios para Presupuesto
                           </p>
-                          <p className="text-xs text-muted-foreground mb-3">
-                            Peralte requerido: <span className="font-bold text-primary">
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Peralte sugerido: <span className="font-bold text-primary">
                               {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))}
                             </span> (basado en claro de {Math.min(slabForm.watch("length"), slabForm.watch("width")).toFixed(2)}m)
-                            {slabForm.watch("viguetaType") === "pretensada" && (
-                              <span className="ml-2 text-orange-600">(+10% por pretensada)</span>
-                            )}
                           </p>
+                          <FormField
+                            control={slabForm.control}
+                            name="beamDepth"
+                            render={({ field }) => (
+                              <FormItem className="mb-3">
+                                <FormLabel className="text-xs">Peralte de Vigueta</FormLabel>
+                                <div className="pt-1">
+                                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                    <span>P-15</span>
+                                    <span>P-20</span>
+                                    <span>P-25</span>
+                                  </div>
+                                  <Slider
+                                    min={0}
+                                    max={2}
+                                    step={1}
+                                    value={[field.value === "P-15" ? 0 : field.value === "P-20" ? 1 : 2]}
+                                    onValueChange={(vals) => {
+                                      const peraltes = ["P-15", "P-20", "P-25"] as const;
+                                      field.onChange(peraltes[vals[0]]);
+                                    }}
+                                    className="py-2"
+                                    data-testid="slider-peralte"
+                                  />
+                                  <div className="text-center mt-1">
+                                    <span className="text-sm font-bold text-primary">{field.value}</span>
+                                  </div>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                           <div className="grid grid-cols-2 gap-4">
                             <FormField
                               control={slabForm.control}
@@ -563,7 +591,7 @@ export default function CalculatorPage() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs">
-                                    Vigueta {slabForm.watch("viguetaType") === "almaAbierta" ? "Alma Abierta" : "Pretensada"} {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))} ($/pza)
+                                    Vigueta {slabForm.watch("viguetaType") === "almaAbierta" ? "Alma Abierta" : "Pretensada"} {slabForm.watch("beamDepth")} ($/pza)
                                   </FormLabel>
                                   <FormControl>
                                     <Input
@@ -606,30 +634,6 @@ export default function CalculatorPage() {
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-                    <FormField
-                      control={slabForm.control}
-                      name="beamDepth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Peralte de Vigueta</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger className="h-12" data-testid="select-beam-depth">
-                                <SelectValue placeholder="Seleccionar peralte" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="P-15">P-15 (Claros cortos)</SelectItem>
-                              <SelectItem value="P-20">P-20 (Claros medios)</SelectItem>
-                              <SelectItem value="P-25">P-25 (Claros largos)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>Determina la capacidad de carga según el claro.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     <FormField
                       control={slabForm.control}
                       name="density"
