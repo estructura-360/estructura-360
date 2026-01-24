@@ -28,6 +28,9 @@ export const scheduleTasks = pgTable("schedule_tasks", {
   title: text("title").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
+  startTime: text("start_time"),
+  endTime: text("end_time"),
+  priority: text("priority").default("medium"),
   dependencies: integer("dependencies").array(),
   status: text("status").default("pending"),
 });

@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, GripVertical, Calendar, Loader2, Trash2, WifiOff, CloudOff } from "lucide-react";
+import { Plus, GripVertical, Calendar, Loader2, Trash2, WifiOff, CloudOff, Clock, Flag, AlertTriangle, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays, addDays } from "date-fns";
 import { es } from "date-fns/locale";
@@ -21,6 +22,9 @@ interface Task {
   title: string;
   startDate: string;
   endDate: string;
+  startTime?: string;
+  endTime?: string;
+  priority?: string;
   status: string;
   dependencies: number[] | null;
   isOffline?: boolean;
@@ -66,6 +70,10 @@ export default function SchedulePage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDays, setNewTaskDays] = useState(3);
+  const [newTaskStartDate, setNewTaskStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [newTaskStartTime, setNewTaskStartTime] = useState("08:00");
+  const [newTaskEndTime, setNewTaskEndTime] = useState("17:00");
+  const [newTaskPriority, setNewTaskPriority] = useState<string>("medium");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offlineTasks, setOfflineTasks] = useState<Task[]>([]);
   const { toast } = useToast();
@@ -97,9 +105,8 @@ export default function SchedulePage() {
   );
 
   const createTask = useMutation({
-    mutationFn: async (data: { title: string; days: number }) => {
-      const lastTask = tasks?.[tasks.length - 1];
-      const startDate = lastTask ? addDays(new Date(lastTask.endDate), 1) : new Date();
+    mutationFn: async (data: { title: string; days: number; startDate: string; startTime: string; endTime: string; priority: string }) => {
+      const startDate = new Date(data.startDate);
       const endDate = addDays(startDate, data.days);
       
       const taskData = {
@@ -107,6 +114,9 @@ export default function SchedulePage() {
         title: data.title,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
+        startTime: data.startTime,
+        endTime: data.endTime,
+        priority: data.priority,
         status: 'pending',
         dependencies: null
       };
@@ -140,12 +150,15 @@ export default function SchedulePage() {
       }
       setNewTaskTitle("");
       setNewTaskDays(3);
+      setNewTaskStartDate(format(new Date(), 'yyyy-MM-dd'));
+      setNewTaskStartTime("08:00");
+      setNewTaskEndTime("17:00");
+      setNewTaskPriority("medium");
       setDialogOpen(false);
     },
     onError: async () => {
       // If online request fails, save offline
-      const lastTask = tasks?.[tasks.length - 1];
-      const startDate = lastTask ? addDays(new Date(lastTask.endDate), 1) : new Date();
+      const startDate = new Date(newTaskStartDate);
       const endDate = addDays(startDate, newTaskDays);
       
       const taskData = {
@@ -153,6 +166,9 @@ export default function SchedulePage() {
         title: newTaskTitle,
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
+        startTime: newTaskStartTime,
+        endTime: newTaskEndTime,
+        priority: newTaskPriority,
         status: 'pending',
         dependencies: null
       };
@@ -170,6 +186,10 @@ export default function SchedulePage() {
       
       setNewTaskTitle("");
       setNewTaskDays(3);
+      setNewTaskStartDate(format(new Date(), 'yyyy-MM-dd'));
+      setNewTaskStartTime("08:00");
+      setNewTaskEndTime("17:00");
+      setNewTaskPriority("medium");
       setDialogOpen(false);
       
       toast({ 
@@ -277,27 +297,121 @@ export default function SchedulePage() {
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <Input
-                    placeholder="Nombre de la actividad (ej: Entrega de cemento)"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                  />
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">Duración:</span>
+                  <div>
+                    <Label className="text-sm font-medium">Nombre de la Actividad</Label>
                     <Input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={newTaskDays}
-                      onChange={(e) => setNewTaskDays(parseInt(e.target.value) || 1)}
-                      className="w-20"
+                      placeholder="Ej: Entrega de cemento"
+                      value={newTaskTitle}
+                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      className="mt-1"
+                      data-testid="input-task-title"
                     />
-                    <span className="text-sm text-muted-foreground">días</span>
                   </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Fecha de Inicio
+                      </Label>
+                      <Input
+                        type="date"
+                        value={newTaskStartDate}
+                        onChange={(e) => setNewTaskStartDate(e.target.value)}
+                        className="mt-1"
+                        data-testid="input-task-date"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Duración</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={newTaskDays}
+                          onChange={(e) => setNewTaskDays(parseInt(e.target.value) || 1)}
+                          className="w-20"
+                          data-testid="input-task-days"
+                        />
+                        <span className="text-sm text-muted-foreground">días</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Hora de Inicio
+                      </Label>
+                      <Input
+                        type="time"
+                        value={newTaskStartTime}
+                        onChange={(e) => setNewTaskStartTime(e.target.value)}
+                        className="mt-1"
+                        data-testid="input-task-start-time"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Hora de Fin
+                      </Label>
+                      <Input
+                        type="time"
+                        value={newTaskEndTime}
+                        onChange={(e) => setNewTaskEndTime(e.target.value)}
+                        className="mt-1"
+                        data-testid="input-task-end-time"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium flex items-center gap-1">
+                      <Flag className="h-3 w-3" />
+                      Prioridad
+                    </Label>
+                    <Select value={newTaskPriority} onValueChange={setNewTaskPriority}>
+                      <SelectTrigger className="mt-1" data-testid="select-task-priority">
+                        <SelectValue placeholder="Seleccionar prioridad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">
+                          <span className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                            Alta - Urgente
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="medium">
+                          <span className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            Media - Normal
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="low">
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            Baja - Puede esperar
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
                   <Button 
                     className="w-full" 
-                    onClick={() => createTask.mutate({ title: newTaskTitle, days: newTaskDays })}
+                    onClick={() => createTask.mutate({ 
+                      title: newTaskTitle, 
+                      days: newTaskDays,
+                      startDate: newTaskStartDate,
+                      startTime: newTaskStartTime,
+                      endTime: newTaskEndTime,
+                      priority: newTaskPriority
+                    })}
                     disabled={!newTaskTitle || createTask.isPending}
+                    data-testid="button-create-task"
                   >
                     {createTask.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     {isOffline ? "Guardar Localmente" : "Agregar al Cronograma"}
@@ -332,7 +446,7 @@ export default function SchedulePage() {
           <CardContent>
             {/* Timeline Header */}
             <div className="flex border-b pb-2 mb-4">
-              <div className="w-48 shrink-0 font-medium text-sm text-muted-foreground">Actividad</div>
+              <div className="w-64 shrink-0 font-medium text-sm text-muted-foreground">Actividad</div>
               <div className="flex-1 flex justify-between text-xs text-muted-foreground">
                 {Array.from({ length: Math.min(timelineBounds.totalDays, 14) }).map((_, i) => (
                   <span key={i} className="text-center">
@@ -351,16 +465,34 @@ export default function SchedulePage() {
               ) : (
                 tasks?.map((task) => {
                   const pos = getTaskPosition(task);
+                  const getPriorityIcon = (priority?: string) => {
+                    switch (priority) {
+                      case 'high': return <AlertTriangle className="h-3 w-3 text-red-500" />;
+                      case 'low': return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+                      default: return <AlertCircle className="h-3 w-3 text-amber-500" />;
+                    }
+                  };
                   return (
                     <div key={task.id} className="flex items-center group">
-                      <div className="w-48 shrink-0 flex items-center gap-2">
+                      <div className="w-64 shrink-0 flex items-center gap-2">
                         <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab" />
-                        <span className="text-sm font-medium truncate flex items-center gap-1">
-                          {task.title}
-                          {task.isOffline && (
-                            <CloudOff className="h-3 w-3 text-amber-500" />
-                          )}
-                        </span>
+                        {getPriorityIcon(task.priority)}
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium truncate flex items-center gap-1">
+                            {task.title}
+                            {task.isOffline && (
+                              <CloudOff className="h-3 w-3 text-amber-500" />
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-2">
+                            {task.startTime && task.endTime && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {task.startTime} - {task.endTime}
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex-1 relative h-8">
                         <div
