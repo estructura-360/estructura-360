@@ -8,6 +8,14 @@ import { Ruler, Layers, ShieldCheck, Zap, ThermometerSun, Clock, Weight, CheckCi
 
 import constructionImage from "@assets/stock_images/modern_construction__77c2c1d4.jpg";
 import cimbradoTecnicoImg from "@assets/IMG_6379_1769205801594.jpeg";
+import constructionSlabImg from "@/assets/images/construction-slab.jpg";
+import steelBeamsImg from "@/assets/images/steel-beams.jpg";
+import concretePouring from "@/assets/images/concrete-pouring.jpg";
+import engineerBlueprints from "@/assets/images/engineer-blueprints.jpg";
+import buildingConstruction from "@/assets/images/building-construction.jpg";
+import formworkInstall from "@/assets/images/formwork-install.jpg";
+import constructionTools from "@/assets/images/construction-tools.jpg";
+import constructionTeam from "@/assets/images/construction-team.jpg";
 
 const beams = [
   { 
@@ -38,6 +46,18 @@ const beams = [
     idealFor: "Claros grandes sin apoyos intermedios"
   },
 ];
+
+const getStepImage = (step: number) => {
+  switch (step) {
+    case 1: return constructionTools;
+    case 2: return steelBeamsImg;
+    case 3: return buildingConstruction;
+    case 4: return formworkInstall;
+    case 5: return constructionSlabImg;
+    case 6: return concretePouring;
+    default: return constructionImage;
+  }
+};
 
 const installationSteps = [
   {
@@ -770,17 +790,29 @@ export default function TechnicalPage() {
           <div className="space-y-6">
             {installationSteps.map((step, index) => (
               <Card key={index} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="w-full md:w-48 bg-gradient-to-br from-primary to-primary/80 p-6 flex flex-col items-center justify-center text-center">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                      <span className="text-2xl font-bold text-white">{step.step}</span>
+                <div className="flex flex-col lg:flex-row">
+                  <div className="relative w-full lg:w-56 h-40 lg:h-auto shrink-0">
+                    <img 
+                      src={getStepImage(step.step)} 
+                      alt={`Paso ${step.step}: ${step.title}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-primary/90 to-transparent" />
+                    <div className="absolute bottom-4 left-4 lg:bottom-auto lg:top-1/2 lg:-translate-y-1/2 lg:left-4">
+                      <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg mb-2">
+                        <span className="text-2xl font-bold text-primary">{step.step}</span>
+                      </div>
+                      <p className="text-xs text-white/80 uppercase tracking-wider">Duración</p>
+                      <p className="text-sm text-white font-semibold">{step.duration}</p>
                     </div>
-                    <step.icon className="h-8 w-8 text-white/80 mb-2" />
-                    <p className="text-xs text-white/60 uppercase tracking-wider">Duración</p>
-                    <p className="text-sm text-white font-medium">{step.duration}</p>
                   </div>
                   <div className="flex-1 p-6">
-                    <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                        <step.icon className="h-5 w-5 text-accent" />
+                      </div>
+                      <h3 className="text-xl font-bold">{step.title}</h3>
+                    </div>
                     <p className="text-muted-foreground mb-4">{step.description}</p>
                     
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">

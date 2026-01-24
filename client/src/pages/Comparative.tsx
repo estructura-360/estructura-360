@@ -10,6 +10,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Clock, Weight, Box, Zap, TrendingDown, Shield, ThermometerSun, Hammer, DollarSign, Building2, Waves, CheckCircle2, XCircle, AlertTriangle, Lightbulb, Leaf, Timer, Users, Award, ArrowRight, Loader2 } from "lucide-react";
 
 import houseImage from "@assets/stock_images/modern_house_constru_1482b528.jpg";
+import constructionTeam from "@/assets/images/construction-team.jpg";
+import engineerBlueprints from "@/assets/images/engineer-blueprints.jpg";
+import steelBeamsImg from "@/assets/images/steel-beams.jpg";
 
 const COLORS = ['#f97316', '#0f172a', '#10b981', '#3b82f6', '#8b5cf6'];
 
@@ -548,6 +551,33 @@ export default function ComparativePage() {
         </TabsContent>
 
         <TabsContent value="benefits" className="space-y-8">
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="relative overflow-hidden rounded-2xl h-48 group">
+              <img src={constructionTeam} alt="Equipo de construcción" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-bold">Equipos Profesionales</p>
+                <p className="text-sm text-white/80">Ingenieros certificados</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-2xl h-48 group">
+              <img src={engineerBlueprints} alt="Planos de ingeniería" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-bold">Diseño Validado</p>
+                <p className="text-sm text-white/80">Cálculos por expertos</p>
+              </div>
+            </div>
+            <div className="relative overflow-hidden rounded-2xl h-48 group">
+              <img src={steelBeamsImg} alt="Estructura de acero" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-bold">Materiales Premium</p>
+                <p className="text-sm text-white/80">Alta calidad garantizada</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {benefits.map((benefit, index) => (
               <Card key={index} className="text-center shadow-lg hover:shadow-xl transition-shadow">

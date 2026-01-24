@@ -9,6 +9,9 @@ import heroImage from "@assets/stock_images/civil_engineers_cons_5bf37a62.jpg";
 import blueprintImage from "@assets/stock_images/construction_enginee_10031660.jpg";
 import workerImage from "@assets/stock_images/professional_constru_4a783fb5.jpg";
 import houseImage from "@assets/stock_images/modern_house_constru_639f58c6.jpg";
+import constructionTeam from "@/assets/images/construction-team.jpg";
+import concretePouring from "@/assets/images/concrete-pouring.jpg";
+import buildingConstruction from "@/assets/images/building-construction.jpg";
 
 const stats = [
   { value: "30%", label: "Menos uso de agua", icon: TrendingDown },
@@ -182,21 +185,48 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="grid md:grid-cols-2 gap-8 items-center max-w-6xl mx-auto">
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-            <img src={blueprintImage} alt="Planos de ingeniería" className="w-full h-64 md:h-80 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h3 className="font-bold text-lg">Precisión en Cada Cálculo</h3>
-              <p className="text-sm text-white/80">Herramientas validadas por ingenieros estructuristas</p>
-            </div>
+        <section className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-display font-bold text-primary mb-2">Construyendo el Futuro</h2>
+            <p className="text-muted-foreground">Tecnología y experiencia al servicio de la construcción</p>
           </div>
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-            <img src={workerImage} alt="Profesional de construcción" className="w-full h-64 md:h-80 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-accent/60 to-transparent" />
-            <div className="absolute bottom-4 left-4 right-4 text-white">
-              <h3 className="font-bold text-lg">Para Profesionales</h3>
-              <p className="text-sm text-white/80">Diseñado para constructores, ingenieros y arquitectos</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl group col-span-2 row-span-2">
+              <img src={blueprintImage} alt="Planos de ingeniería" className="w-full h-full min-h-[280px] object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4 text-white">
+                <h3 className="font-bold text-xl">Precisión en Cada Cálculo</h3>
+                <p className="text-sm text-white/80">Herramientas validadas por ingenieros estructuristas</p>
+              </div>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-xl group">
+              <img src={workerImage} alt="Profesional de construcción" className="w-full h-32 md:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-accent/80 to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-white">
+                <p className="font-semibold text-sm">Profesionales</p>
+              </div>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-xl group">
+              <img src={constructionTeam} alt="Equipo de construcción" className="w-full h-32 md:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-white">
+                <p className="font-semibold text-sm">Trabajo en Equipo</p>
+              </div>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-xl group">
+              <img src={concretePouring} alt="Colado de concreto" className="w-full h-32 md:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-green-700/80 to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-white">
+                <p className="font-semibold text-sm">Colado Experto</p>
+              </div>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden shadow-xl group">
+              <img src={buildingConstruction} alt="Construcción moderna" className="w-full h-32 md:h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-gradient-to-t from-blue-700/80 to-transparent" />
+              <div className="absolute bottom-2 left-2 right-2 text-white">
+                <p className="font-semibold text-sm">Proyectos Modernos</p>
+              </div>
             </div>
           </div>
         </section>
