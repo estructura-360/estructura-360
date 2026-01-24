@@ -43,42 +43,50 @@ const installationSteps = [
   {
     step: 1,
     title: "Preparación de Apoyos",
-    description: "Verificar nivel y alineación de muros o trabes de apoyo. Colocar apoyos temporales (polines) a cada 2-2.5m en claros mayores a 3m.",
+    description: "Revisar enrase y nivel de muros. Montar viguetas según plano de colocación. Apoyar mínimo 5 cm sobre cadena o trabe.",
     duration: "2-4 horas",
     icon: HardHat,
-    tips: ["Verificar nivel con láser o manguera", "Usar calzas para nivelar polines", "Marcar posición de viguetas en muros"]
+    tips: ["Verificar nivel con láser o manguera", "Usar calzas para nivelar", "Marcar posición de viguetas en muros"]
   },
   {
     step: 2,
     title: "Colocación de Viguetas",
-    description: "Distribuir viguetas a 75cm entre ejes. Respetar apoyo mínimo de 5cm en extremos. En claros >6m usar traslape de 30cm.",
+    description: "Levantar viguetas a los tercios (nunca de extremos ni del centro). Colocar perpendicular a los barrotes. No invertir ni colocar perpendicular.",
     duration: "1-2 horas por 20m²",
     icon: Truck,
-    tips: ["No arrastrar las viguetas", "Colocar primero las de los extremos", "Verificar alineación con hilo"]
+    tips: ["Levantar SIEMPRE a los tercios", "Nunca arrastrar las viguetas", "Colocar perpendicular a barrotes"]
   },
   {
     step: 3,
     title: "Instalación de Bovedillas",
-    description: "Colocar bovedillas de poliestireno entre viguetas. Iniciar desde un extremo. Cortar con cutter para ajustes en bordes.",
+    description: "Colocar una bovedilla en extremos como escantillón para dar separación correcta. Montar bovedillas bien asentadas y lo más juntas posible.",
     duration: "30 min por 10m²",
     icon: Package,
-    tips: ["No pisar directamente las bovedillas", "Usar tablas para circular", "Dejar espacios para instalaciones"]
+    tips: ["Usar bovedilla como escantillón en extremos", "No pisar la bovedilla - caminar sobre vigueta o tablones", "Dejar espacios para instalaciones"]
   },
   {
     step: 4,
-    title: "Armado de Capa de Compresión",
-    description: "Colocar malla electrosoldada 6x6-10/10 sobre bovedillas. Traslapar mallas mínimo 20cm. Colocar silletas separadoras.",
-    duration: "1 hora por 30m²",
-    icon: Grid3X3,
-    tips: ["Usar separadores plásticos", "Verificar traslapes", "Revisar que la malla cubra toda el área"]
+    title: "Apuntalamiento (Cimbra)",
+    description: "Colocar apuntalamiento aproximadamente a cada 1.22m. Los puntales centrales deben permanecer mínimo 7 días.",
+    duration: "1-2 horas",
+    icon: Construction,
+    tips: ["Separación entre puntales: ~1.22m", "Puntales centrales mínimo 7 días", "NUNCA colocar bovedillas sin antes apuntalar"]
   },
   {
     step: 5,
+    title: "Colocación de Malla",
+    description: "Colocar malla electrosoldada y fijarla con amarres a las trabes o cadenas. Se traslapa alambre sobre alambre (no cuadros completos).",
+    duration: "1 hora por 30m²",
+    icon: Grid3X3,
+    tips: ["Traslapar alambre sobre alambre", "No hace falta traslapar cuadros completos", "Fijar con amarres a trabes/cadenas"]
+  },
+  {
+    step: 6,
     title: "Colado",
-    description: "Usar concreto f'c=250 kg/cm² (recomendado para Losa Vigueta Bovedilla) con revenimiento 12-14 cm. Espesor mínimo de capa de compresión: 4cm sobre bovedilla.",
+    description: "Colocar tablones de circulación. Comenzar colado en trabes o cadenas, seguido de vigueta y bovedilla. Concreto f'c=200-250 kg/cm².",
     duration: "Depende del área",
-    icon: Construction,
-    tips: ["No concentrar concreto en un punto", "Vibrar ligeramente", "Curar por mínimo 7 días"]
+    icon: Hammer,
+    tips: ["Caminar SIEMPRE sobre tablones", "Iniciar colado en trabes/cadenas", "Evitar acumulaciones de concreto", "Humedecer firme por 5 días"]
   },
 ];
 
@@ -442,12 +450,279 @@ export default function TechnicalPage() {
 
         <TabsContent value="installation" className="space-y-8">
           <div className="text-center max-w-2xl mx-auto mb-8">
-            <h2 className="text-2xl font-bold text-primary mb-2">Guía de Instalación Paso a Paso</h2>
+            <h2 className="text-2xl font-bold text-primary mb-2">Manual del Sistema Vigueta y Bovedilla</h2>
             <p className="text-muted-foreground">
-              Sigue estos pasos para una instalación correcta del sistema. Tiempo estimado para 100m²: 2-3 días con cuadrilla de 4 personas.
+              Guía completa de instalación. Tiempo estimado para 100m²: 2-3 días con cuadrilla de 4 personas.
             </p>
           </div>
-          
+
+          {/* Notas Importantes - Critical Warnings */}
+          <Card className="border-2 border-red-300 bg-red-50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2 text-red-700">
+                <AlertCircle className="h-5 w-5" />
+                Notas Importantes - Leer Antes de Iniciar
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-200">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-red-600 font-bold text-lg">✕</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-red-700">NUNCA cortar el acero de las viguetas</p>
+                    <p className="text-sm text-red-600">El acero de presfuerzo es estructural</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-200">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-red-600 font-bold text-lg">✕</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-red-700">NUNCA colocar bovedillas sin apuntalar</p>
+                    <p className="text-sm text-red-600">Primero cimbra, luego bovedillas</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-200">
+                  <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-amber-600 font-bold text-lg">!</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-amber-700">Evitar acumulaciones de concreto</p>
+                    <p className="text-sm text-amber-600">Distribuir uniformemente durante colado</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-white rounded-lg border border-red-200">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-blue-600 font-bold text-lg">i</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-blue-700">Puntales mínimo 7 días</p>
+                    <p className="text-sm text-blue-600">Humedecer firme por 5 días</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Manejo de Viguetas - Visual Do/Don't */}
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-primary text-primary-foreground">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                1. Manejo y Transporte de Viguetas
+              </CardTitle>
+              <CardDescription className="text-primary-foreground/70">
+                La forma correcta de levantar y transportar las viguetas
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Correcto */}
+                <div className="space-y-4">
+                  <h4 className="font-bold text-green-700 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Forma Correcta
+                  </h4>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <div className="flex items-center justify-center mb-4">
+                      {/* SVG Diagram - Correct lifting at thirds */}
+                      <svg viewBox="0 0 200 80" className="w-full max-w-[200px] h-auto">
+                        <rect x="10" y="35" width="180" height="12" rx="2" fill="#0f172a" stroke="#22c55e" strokeWidth="2"/>
+                        <circle cx="70" cy="25" r="8" fill="#22c55e"/>
+                        <line x1="70" y1="33" x2="70" y2="35" stroke="#22c55e" strokeWidth="2"/>
+                        <circle cx="130" cy="25" r="8" fill="#22c55e"/>
+                        <line x1="130" y1="33" x2="130" y2="35" stroke="#22c55e" strokeWidth="2"/>
+                        <text x="70" y="60" textAnchor="middle" fontSize="8" fill="#22c55e">⅓</text>
+                        <text x="130" y="60" textAnchor="middle" fontSize="8" fill="#22c55e">⅓</text>
+                        <path d="M 65 20 L 70 10 L 75 20" fill="none" stroke="#22c55e" strokeWidth="2"/>
+                        <path d="M 125 20 L 130 10 L 135 20" fill="none" stroke="#22c55e" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm text-green-700 text-center font-medium">Levantar la vigueta a los tercios</p>
+                  </div>
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <div className="flex items-center justify-center mb-4">
+                      <svg viewBox="0 0 200 80" className="w-full max-w-[200px] h-auto">
+                        <rect x="30" y="20" width="140" height="40" rx="2" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1"/>
+                        <rect x="40" y="35" width="120" height="12" rx="2" fill="#0f172a"/>
+                        <line x1="30" y1="5" x2="30" y2="60" stroke="#22c55e" strokeWidth="1" strokeDasharray="4"/>
+                        <line x1="170" y1="5" x2="170" y2="60" stroke="#22c55e" strokeWidth="1" strokeDasharray="4"/>
+                        <text x="100" y="75" textAnchor="middle" fontSize="7" fill="#64748b">Perpendicular a barrotes</text>
+                      </svg>
+                    </div>
+                    <p className="text-sm text-green-700 text-center font-medium">Colocar perpendicular a los barrotes</p>
+                  </div>
+                </div>
+
+                {/* Incorrecto */}
+                <div className="space-y-4">
+                  <h4 className="font-bold text-red-700 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    Forma Incorrecta
+                  </h4>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                    <div className="flex items-center justify-center mb-4">
+                      <svg viewBox="0 0 200 80" className="w-full max-w-[200px] h-auto">
+                        <rect x="10" y="35" width="180" height="12" rx="2" fill="#0f172a" stroke="#ef4444" strokeWidth="2"/>
+                        <circle cx="20" cy="25" r="8" fill="#ef4444"/>
+                        <line x1="20" y1="33" x2="20" y2="35" stroke="#ef4444" strokeWidth="2"/>
+                        <circle cx="180" cy="25" r="8" fill="#ef4444"/>
+                        <line x1="180" y1="33" x2="180" y2="35" stroke="#ef4444" strokeWidth="2"/>
+                        <line x1="15" y1="15" x2="25" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                        <line x1="25" y1="15" x2="15" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                        <line x1="175" y1="15" x2="185" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                        <line x1="185" y1="15" x2="175" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm text-red-700 text-center font-medium">NO levantar de los extremos</p>
+                  </div>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4">
+                    <div className="flex items-center justify-center mb-4">
+                      <svg viewBox="0 0 200 80" className="w-full max-w-[200px] h-auto">
+                        <rect x="10" y="35" width="180" height="12" rx="2" fill="#0f172a" stroke="#ef4444" strokeWidth="2"/>
+                        <circle cx="100" cy="25" r="8" fill="#ef4444"/>
+                        <line x1="100" y1="33" x2="100" y2="35" stroke="#ef4444" strokeWidth="2"/>
+                        <path d="M 10 47 Q 100 65 190 47" fill="none" stroke="#ef4444" strokeWidth="1" strokeDasharray="3"/>
+                        <line x1="95" y1="15" x2="105" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                        <line x1="105" y1="15" x2="95" y2="25" stroke="#ef4444" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm text-red-700 text-center font-medium">NO levantar del centro (se flexiona)</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Geometría de Bovedilla */}
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-accent/10">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Package className="h-5 w-5 text-accent" />
+                Geometría de Bovedilla de Poliestireno
+              </CardTitle>
+              <CardDescription>
+                Dimensiones estándar según peralte de vigueta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Peralte (h)</th>
+                      <th className="px-4 py-3 text-center font-semibold">Ancho (b)</th>
+                      <th className="px-4 py-3 text-center font-semibold">Profundidad</th>
+                      <th className="px-4 py-3 text-center font-semibold">Ancho</th>
+                      <th className="px-4 py-3 text-center font-semibold">Altura bovedilla (hb)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t bg-cyan-50">
+                      <td className="px-4 py-3 font-bold text-cyan-700">P-15</td>
+                      <td className="px-4 py-3 text-center">58 cm</td>
+                      <td className="px-4 py-3 text-center">122 cm</td>
+                      <td className="px-4 py-3 text-center">63 cm</td>
+                      <td className="px-4 py-3 text-center font-medium">7.5 cm</td>
+                    </tr>
+                    <tr className="border-t bg-violet-50">
+                      <td className="px-4 py-3 font-bold text-violet-700">P-20</td>
+                      <td className="px-4 py-3 text-center">58 cm</td>
+                      <td className="px-4 py-3 text-center">122 cm</td>
+                      <td className="px-4 py-3 text-center">63 cm</td>
+                      <td className="px-4 py-3 text-center font-medium">12.5 cm</td>
+                    </tr>
+                    <tr className="border-t bg-rose-50">
+                      <td className="px-4 py-3 font-bold text-rose-700">P-25</td>
+                      <td className="px-4 py-3 text-center">58 cm</td>
+                      <td className="px-4 py-3 text-center">122 cm</td>
+                      <td className="px-4 py-3 text-center">63 cm</td>
+                      <td className="px-4 py-3 text-center font-medium">17.5 cm</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contraflecha y Espesor de Firme */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Ruler className="h-4 w-4 text-primary" />
+                  Contraflecha Recomendada
+                </CardTitle>
+                <CardDescription>Elevación al centro para compensar deflexión</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">Claro (m)</th>
+                      <th className="px-3 py-2 text-right font-medium">Contraflecha (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">hasta 3.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-primary">0 cm</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">3.0 - 4.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-primary">0.5 cm</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">4.0 - 5.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-primary">1.5 cm</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">arriba de 5.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-primary">2.0 cm</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-accent" />
+                  Espesor del Firme de Concreto
+                </CardTitle>
+                <CardDescription>Capa de compresión mínima según claro</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium">Claro (m)</th>
+                      <th className="px-3 py-2 text-right font-medium">Espesor mín (cm)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">hasta 5.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-accent">5 cm</td>
+                    </tr>
+                    <tr className="border-t">
+                      <td className="px-3 py-2">arriba de 6.0 m</td>
+                      <td className="px-3 py-2 text-right font-medium text-accent">6 cm</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-xs text-blue-700">
+                    <strong>Resistencia mínima del concreto:</strong> f'c = 200 kg/cm² (recomendado 250 kg/cm²)
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card className="overflow-hidden border-2 border-dashed border-muted-foreground/20">
             <CardHeader className="bg-slate-100 dark:bg-slate-900 pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
