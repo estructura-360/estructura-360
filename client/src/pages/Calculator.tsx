@@ -394,21 +394,21 @@ export default function CalculatorPage() {
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                         <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-green-200">
                           <div className="text-sm sm:text-lg font-bold text-green-600">
-                            -{((slabForm.watch("length") * slabForm.watch("width")) * 0.07).toFixed(1)}m³
+                            -{((slabForm.watch("length") * slabForm.watch("width")) * 0.03).toFixed(1)}m³
                           </div>
-                          <div className="text-xs text-muted-foreground">Concreto</div>
+                          <div className="text-xs text-muted-foreground">Concreto (30%)</div>
                         </div>
                         <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-blue-200">
                           <div className="text-sm sm:text-lg font-bold text-blue-600">
-                            -{((slabForm.watch("length") * slabForm.watch("width")) * 120 / 1000).toFixed(1)}ton
+                            -{((slabForm.watch("length") * slabForm.watch("width")) * 72 / 1000).toFixed(2)}ton
                           </div>
-                          <div className="text-xs text-muted-foreground">Peso</div>
+                          <div className="text-xs text-muted-foreground">Peso (30%)</div>
                         </div>
                         <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-purple-200">
                           <div className="text-sm sm:text-lg font-bold text-purple-600">
-                            -{Math.ceil((slabForm.watch("length") * slabForm.watch("width")) / 20)} días
+                            -{Math.ceil((slabForm.watch("length") * slabForm.watch("width")) / 50)} días
                           </div>
-                          <div className="text-xs text-muted-foreground">Tiempo</div>
+                          <div className="text-xs text-muted-foreground">Tiempo (V&B 50m²/día)</div>
                         </div>
                         <div className="text-center p-2 sm:p-3 bg-white/80 rounded-lg sm:rounded-xl border border-orange-200">
                           <div className="text-sm sm:text-lg font-bold text-orange-600">
@@ -419,7 +419,7 @@ export default function CalculatorPage() {
                       </div>
                       
                       <p className="text-xs text-muted-foreground text-center italic">
-                        Valores estimados basados en comparación con losa maciza de 15cm. Consulte presupuesto formal para cifras exactas.
+                        Valores estimados basados en comparación con losa tradicional de 10cm. Consulte presupuesto formal para cifras exactas.
                       </p>
                       
                       <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded-lg">
