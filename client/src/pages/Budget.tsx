@@ -92,6 +92,14 @@ export default function BudgetPage() {
 
   const handleDownloadPDF = () => {
     if (!projectDetails) return;
+    if (budgetItems.length === 0) {
+      toast({
+        title: "Sin cálculos",
+        description: "Agrega cálculos de losa o muro antes de generar el presupuesto.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const doc = new jsPDF();
     
@@ -103,25 +111,73 @@ export default function BudgetPage() {
     doc.setFontSize(22);
     doc.text("ESTRUCTURA 360", 15, 25);
     doc.setFontSize(10);
-    doc.text("ENGINEERING SOLUTIONS", 15, 32);
+    doc.text("Cálculos validados por ingenieros y arquitectos", 15, 32);
     
     // Project Info
     doc.setTextColor(15, 23, 42);
     doc.setFontSize(16);
-    doc.text("PRESUPUESTO FORMAL", 15, 55);
+    doc.text("PRESUPUESTO - SISTEMA VIGUETA Y BOVEDILLA", 15, 55);
     
     doc.setFontSize(10);
     doc.text(`Cliente: ${projectDetails.clientName}`, 15, 65);
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 15, 70);
     doc.text(`Proyecto ID: #360-${projectDetails.id}`, 15, 75);
 
-    // Table
-    const tableData = budgetItems.map(item => [
-      item.type === 'slab' ? 'Losa Vigueta y Bovedilla' : 'Muro Panel Estructural',
-      `${item.area} m2`,
-      `$${item.unitPrice.toLocaleString('es-MX')}`,
-      `$${item.total.toLocaleString('es-MX')}`
-    ]);
+    // Build table data - only Losa V&B and Muro
+    const tableData: string[][] = [];
+    
+    budgetItems.forEach(item => {
+      const area = parseFloat(item.area) || 0;
+      const unitPrice = area > 0 ? item.baseCost / area : 0;
+      
+      if (item.type === 'slab') {
+        // Losa Vigueta y Bovedilla
+        tableData.push([
+          'Losa Vigueta y Bovedilla',
+          `${area.toFixed(2)} m²`,
+          `$${unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+          `$${item.baseCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+        ]);
+        
+        // Detail: Viguetas
+        if (item.viguetaCount > 0) {
+          tableData.push([
+            '  - Viguetas',
+            `${item.viguetaCount} pzas`,
+            '',
+            `$${item.viguetaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+          ]);
+        }
+        
+        // Detail: Bovedillas
+        if (item.bovedillaVolume > 0) {
+          tableData.push([
+            '  - Bovedillas EPS',
+            `${item.bovedillaVolume.toFixed(2)} m³`,
+            '',
+            `$${item.bovedillaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+          ]);
+        }
+      } else if (item.type === 'wall') {
+        // Muro Panel Estructural
+        tableData.push([
+          'Muro Panel Estructural',
+          `${area.toFixed(2)} m²`,
+          `$${unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+          `$${item.baseCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+        ]);
+      }
+    });
+
+    // Add labor cost if exists
+    if (totalLaborCost > 0) {
+      tableData.push([
+        'Mano de Obra',
+        `${totalArea.toFixed(2)} m²`,
+        `$${parseFloat(projectDetails?.laborCostPerM2 || "0").toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
+        `$${totalLaborCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+      ]);
+    }
 
     autoTable(doc, {
       startY: 85,
@@ -129,6 +185,7 @@ export default function BudgetPage() {
       body: tableData,
       headStyles: { fillColor: [15, 23, 42] },
       alternateRowStyles: { fillColor: [245, 247, 250] },
+      styles: { fontSize: 9 },
       didDrawPage: (data) => {
         (doc as any).lastTableFinalY = data.cursor?.y;
       }
@@ -137,19 +194,29 @@ export default function BudgetPage() {
     const finalY = (doc as any).lastTableFinalY || 150;
 
     // Summary
+    doc.setFontSize(10);
+    doc.text(`Subtotal Materiales: $${totalMaterialCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 10);
+    if (totalLaborCost > 0) {
+      doc.text(`Mano de Obra: $${totalLaborCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 16);
+    }
+    doc.text(`Utilidad (${profitMargin}%): $${currentProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 22);
+    doc.text(`Subtotal: $${totalBudget.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 28);
+    doc.text(`IVA (16%): $${(totalBudget * 0.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 34);
+    
     doc.setFontSize(12);
-    doc.text(`Subtotal: $${subtotal.toLocaleString('es-MX')}`, 140, finalY);
-    doc.text(`IVA (16%): $${(totalBudget * 0.16).toLocaleString('es-MX')}`, 140, finalY + 7);
-    doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text(`TOTAL: $${(totalBudget * 1.16).toLocaleString('es-MX')}`, 140, finalY + 17);
+    doc.text(`TOTAL: $${(totalBudget * 1.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 130, finalY + 44);
 
-    // Footer
+    // Environmental note
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(34, 139, 34);
+    doc.text("Sistema V&B: 30% menos agua, 70% menos cimbrado - Apoyo al medio ambiente", 15, finalY + 55);
+
+    // Footer
     doc.setTextColor(150, 150, 150);
     doc.text("Este presupuesto tiene una vigencia de 15 días naturales.", 15, 280);
-    doc.text("Generado automáticamente por Estructura 360 Engineering.", 15, 285);
+    doc.text("Generado por Estructura 360 - Cálculos validados por ingenieros y arquitectos.", 15, 285);
 
     // Open PDF in new window (works better on mobile/iPad)
     const pdfBlob = doc.output('blob');
