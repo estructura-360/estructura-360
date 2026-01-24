@@ -253,6 +253,9 @@ _Generado por Estructura 360 Engineering_
                           </span>
                           {item.type === 'slab' && item.viguetaCost > 0 && (
                             <div className="mt-1 text-xs space-y-0.5">
+                              <div className="text-muted-foreground">
+                                {(item.specs as any).viguetaTypeLabel || 'Vigueta'} • Densidad: {(item.specs as any).polystyreneDensity || 12}kg/m³
+                              </div>
                               <div className="text-violet-600">Viguetas: {item.viguetaCount} pzas × ${((item.specs as any).prices?.vigueta || 0).toLocaleString()} = ${item.viguetaCost.toLocaleString()}</div>
                               <div className="text-orange-600">Bovedilla: {item.bovedillaVolume.toFixed(2)} m³ × ${((item.specs as any).prices?.bovedilla || 0).toLocaleString()} = ${item.bovedillaCost.toLocaleString()}</div>
                             </div>

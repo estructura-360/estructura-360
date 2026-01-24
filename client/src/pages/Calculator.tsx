@@ -15,6 +15,8 @@ import { useProjects, useCreateProject, useAddCalculation, useDeleteProject } fr
 import { Plus, Save, Loader2, Layers, BrickWall, FileImage, Trash2, Scale, DollarSign } from "lucide-react";
 import construccionLosaImg from "@assets/construccion-losa.jpeg";
 import panelEstructuralImg from "@assets/panel-estructural.jpeg";
+import viguetaAlmaAbiertaImg from "@/assets/vigueta-alma-abierta.jpeg";
+import viguetaPretensadaImg from "@/assets/vigueta-pretensada.jpeg";
 import { SlabComparator } from "@/components/SlabComparator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +28,7 @@ const slabFormSchema = z.object({
   length: z.coerce.number().min(1, "El largo debe ser mayor a 0"),
   width: z.coerce.number().min(1, "El ancho debe ser mayor a 0"),
   beamDepth: z.enum(["P-15", "P-20", "P-25"]),
+  viguetaType: z.enum(["almaAbierta", "pretensada"]),
   density: z.coerce.number().min(10).max(25),
   climate: z.enum(["Caluroso", "Frío"]),
   viguetaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
@@ -36,6 +39,19 @@ const getPeralteFromClaro = (shortestSide: number): "P-15" | "P-20" | "P-25" => 
   if (shortestSide <= 4) return "P-15";
   if (shortestSide <= 5) return "P-20";
   return "P-25";
+};
+
+const VIGUETA_TYPES = {
+  almaAbierta: { 
+    label: "Vigueta de Alma Abierta", 
+    description: "Ligera y fácil de manejar",
+    factor: 1.0,
+  },
+  pretensada: { 
+    label: "Vigueta Pretensada", 
+    description: "Más pesada y robusta (+10%)",
+    factor: 1.10,
+  },
 };
 
 const wallFormSchema = z.object({
@@ -63,6 +79,7 @@ export default function CalculatorPage() {
       length: 0,
       width: 0,
       beamDepth: "P-15",
+      viguetaType: "almaAbierta",
       density: 12,
       climate: "Caluroso",
       viguetaPrice: 0,
@@ -125,15 +142,21 @@ export default function CalculatorPage() {
     const shortestSide = Math.min(values.length, values.width);
     const calculatedPeralte = getPeralteFromClaro(shortestSide);
     
+    const viguetaConfig = VIGUETA_TYPES[values.viguetaType];
+    const viguetaPriceWithFactor = values.viguetaPrice * viguetaConfig.factor;
+    
     const specs = { 
       beamDepth: calculatedPeralte, 
+      viguetaType: values.viguetaType,
+      viguetaTypeLabel: viguetaConfig.label,
       polystyreneDensity: values.density,
       climate: values.climate,
       dimensions: { length: values.length, width: values.width },
       prices: {
-        vigueta: values.viguetaPrice,
+        vigueta: viguetaPriceWithFactor,
         bovedilla: values.bovedillaPrice,
-        peralte: calculatedPeralte
+        peralte: calculatedPeralte,
+        viguetaType: values.viguetaType
       }
     };
     
@@ -446,57 +469,137 @@ export default function CalculatorPage() {
                         </p>
                       </div>
                       
-                      <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
-                        <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Precios para Presupuesto
-                        </p>
-                        <p className="text-xs text-muted-foreground mb-3">
-                          Peralte requerido: <span className="font-bold text-primary">
-                            {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))}
-                          </span> (basado en claro de {Math.min(slabForm.watch("length"), slabForm.watch("width")).toFixed(2)}m)
-                        </p>
-                        <div className="grid grid-cols-2 gap-4">
+                      <div className="mt-4 space-y-4">
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                          <p className="text-sm font-semibold text-primary mb-3">Tipo de Vigueta</p>
                           <FormField
                             control={slabForm.control}
-                            name="viguetaPrice"
+                            name="viguetaType"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel className="text-xs">
-                                  Vigueta {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))} ($/pieza)
-                                </FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    {...field}
-                                    className="h-10"
-                                    data-testid="input-vigueta-price"
-                                  />
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <label
+                                      htmlFor="almaAbierta"
+                                      className={`cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                                        field.value === "almaAbierta" 
+                                          ? "border-primary bg-primary/5 shadow-md" 
+                                          : "border-muted hover:border-primary/50"
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        id="almaAbierta"
+                                        value="almaAbierta"
+                                        checked={field.value === "almaAbierta"}
+                                        onChange={() => field.onChange("almaAbierta")}
+                                        className="sr-only"
+                                      />
+                                      <div className="flex flex-col items-center gap-2">
+                                        <img 
+                                          src={viguetaAlmaAbiertaImg} 
+                                          alt="Vigueta Alma Abierta" 
+                                          className="w-full h-16 object-contain rounded"
+                                        />
+                                        <div className="text-center">
+                                          <p className="text-xs font-semibold">Alma Abierta</p>
+                                          <p className="text-xs text-muted-foreground">Ligera y fácil</p>
+                                        </div>
+                                      </div>
+                                    </label>
+                                    <label
+                                      htmlFor="pretensada"
+                                      className={`cursor-pointer rounded-xl border-2 p-3 transition-all ${
+                                        field.value === "pretensada" 
+                                          ? "border-primary bg-primary/5 shadow-md" 
+                                          : "border-muted hover:border-primary/50"
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        id="pretensada"
+                                        value="pretensada"
+                                        checked={field.value === "pretensada"}
+                                        onChange={() => field.onChange("pretensada")}
+                                        className="sr-only"
+                                      />
+                                      <div className="flex flex-col items-center gap-2">
+                                        <img 
+                                          src={viguetaPretensadaImg} 
+                                          alt="Vigueta Pretensada" 
+                                          className="w-full h-16 object-contain rounded"
+                                        />
+                                        <div className="text-center">
+                                          <p className="text-xs font-semibold">Pretensada</p>
+                                          <p className="text-xs text-muted-foreground">Robusta (+10%)</p>
+                                        </div>
+                                      </div>
+                                    </label>
+                                  </div>
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
-                          <FormField
-                            control={slabForm.control}
-                            name="bovedillaPrice"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="text-xs">Bovedilla ($/m³)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="0"
-                                    {...field}
-                                    className="h-10"
-                                    data-testid="input-bovedilla-price"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
+                        </div>
+                        
+                        <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                          <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Precios para Presupuesto
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Peralte requerido: <span className="font-bold text-primary">
+                              {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))}
+                            </span> (basado en claro de {Math.min(slabForm.watch("length"), slabForm.watch("width")).toFixed(2)}m)
+                            {slabForm.watch("viguetaType") === "pretensada" && (
+                              <span className="ml-2 text-orange-600">(+10% por pretensada)</span>
                             )}
-                          />
+                          </p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={slabForm.control}
+                              name="viguetaPrice"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">
+                                    Vigueta {slabForm.watch("viguetaType") === "almaAbierta" ? "Alma Abierta" : "Pretensada"} {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))} ($/pza)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="0"
+                                      {...field}
+                                      className="h-10"
+                                      data-testid="input-vigueta-price"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={slabForm.control}
+                              name="bovedillaPrice"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">
+                                    Bovedilla {slabForm.watch("density")}kg/m³ ($/m³)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="0"
+                                      {...field}
+                                      className="h-10"
+                                      data-testid="input-bovedilla-price"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
