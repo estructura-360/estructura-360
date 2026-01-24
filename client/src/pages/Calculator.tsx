@@ -58,6 +58,8 @@ const wallFormSchema = z.object({
   length: z.coerce.number().min(1, "La longitud debe ser mayor a 0"),
   height: z.coerce.number().min(1, "La altura debe ser mayor a 0"),
   type: z.enum(["load-bearing", "partition", "ceiling", "retaining"]),
+  pricePerLinearMeter: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
+  pricePerHeight: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
 });
 
 export default function CalculatorPage() {
@@ -93,6 +95,8 @@ export default function CalculatorPage() {
       length: 0,
       height: 0,
       type: "load-bearing",
+      pricePerLinearMeter: 0,
+      pricePerHeight: 0,
     },
   });
 
@@ -203,7 +207,21 @@ export default function CalculatorPage() {
 
     const projectId = parseInt(selectedProjectId);
     const area = values.length * values.height;
-    const specs = { wallType: values.type };
+    const linearCost = values.length * values.pricePerLinearMeter;
+    const heightCost = values.height * values.pricePerHeight;
+    const totalWallCost = linearCost + heightCost;
+    
+    const specs = { 
+      wallType: values.type,
+      dimensions: { length: values.length, height: values.height },
+      prices: {
+        pricePerLinearMeter: values.pricePerLinearMeter,
+        pricePerHeight: values.pricePerHeight,
+        linearCost,
+        heightCost,
+        totalCost: totalWallCost
+      }
+    };
 
     await addCalculation.mutateAsync({
       projectId,
@@ -220,7 +238,7 @@ export default function CalculatorPage() {
       }
     });
 
-    wallForm.reset({ ...values, length: 0, height: 0 });
+    wallForm.reset({ ...values, length: 0, height: 0, pricePerLinearMeter: 0, pricePerHeight: 0 });
   };
 
   return (
@@ -804,6 +822,71 @@ export default function CalculatorPage() {
                       )}
                     />
                   </div>
+
+                  {wallForm.watch("length") > 0 && wallForm.watch("height") > 0 && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                      <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Precios para Presupuesto
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Área total: <span className="font-bold text-primary">
+                          {(wallForm.watch("length") * wallForm.watch("height")).toFixed(2)} m²
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={wallForm.control}
+                          name="pricePerLinearMeter"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Precio por metro lineal ($/m)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  {...field}
+                                  className="h-10"
+                                  data-testid="input-wall-price-linear"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                {wallForm.watch("length")}m × ${wallForm.watch("pricePerLinearMeter")} = ${(wallForm.watch("length") * wallForm.watch("pricePerLinearMeter")).toLocaleString()}
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={wallForm.control}
+                          name="pricePerHeight"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">Precio por altura ($/m)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  {...field}
+                                  className="h-10"
+                                  data-testid="input-wall-price-height"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-xs">
+                                {wallForm.watch("height")}m × ${wallForm.watch("pricePerHeight")} = ${(wallForm.watch("height") * wallForm.watch("pricePerHeight")).toLocaleString()}
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                        <p className="text-sm text-center font-bold text-primary">
+                          Costo Total Estimado: ${((wallForm.watch("length") * wallForm.watch("pricePerLinearMeter")) + (wallForm.watch("height") * wallForm.watch("pricePerHeight"))).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex justify-end pt-4">
                     <Button 

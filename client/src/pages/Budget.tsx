@@ -48,6 +48,17 @@ export default function BudgetPage() {
         viguetaCost = viguetaCount * viguetaUnitPrice;
         bovedillaCost = bovedillaVolume * bovedillaPricePerM3;
         materialCost = viguetaCost + bovedillaCost;
+      } else if (calc.type === 'wall') {
+        const specs = calc.specs as any;
+        const prices = specs?.prices || {};
+        
+        const linearCost = prices?.linearCost || 0;
+        const heightCost = prices?.heightCost || 0;
+        materialCost = prices?.totalCost || (linearCost + heightCost);
+        
+        if (materialCost === 0) {
+          materialCost = parseFloat(calc.area) * 320;
+        }
       } else {
         materialCost = parseFloat(calc.area) * 320;
       }
@@ -249,8 +260,25 @@ _Generado por Estructura 360 Engineering_
                         <TableCell className="font-medium">
                           {item.type === 'slab' ? 'Losa Vigueta y Bovedilla' : 'Muro Panel Estructural'}
                           <span className="block text-xs text-muted-foreground font-normal">
-                            {item.type === 'slab' ? (item.specs as any).beamDepth : (item.specs as any).wallType}
+                            {item.type === 'slab' ? (item.specs as any).beamDepth : 
+                              (item.specs as any).wallType === 'load-bearing' ? 'Muro de Carga' :
+                              (item.specs as any).wallType === 'partition' ? 'Muro Divisorio' :
+                              (item.specs as any).wallType === 'ceiling' ? 'Plafón / Losa' :
+                              (item.specs as any).wallType === 'retaining' ? 'Muro de Contención' : (item.specs as any).wallType}
                           </span>
+                          {item.type === 'wall' && (item.specs as any).prices?.totalCost > 0 && (
+                            <div className="mt-1 text-xs space-y-0.5">
+                              <div className="text-muted-foreground">
+                                {(item.specs as any).dimensions?.length}m × {(item.specs as any).dimensions?.height}m
+                              </div>
+                              <div className="text-blue-600">
+                                Lineal: {(item.specs as any).dimensions?.length}m × ${((item.specs as any).prices?.pricePerLinearMeter || 0).toLocaleString()} = ${((item.specs as any).prices?.linearCost || 0).toLocaleString()}
+                              </div>
+                              <div className="text-green-600">
+                                Altura: {(item.specs as any).dimensions?.height}m × ${((item.specs as any).prices?.pricePerHeight || 0).toLocaleString()} = ${((item.specs as any).prices?.heightCost || 0).toLocaleString()}
+                              </div>
+                            </div>
+                          )}
                           {item.type === 'slab' && item.viguetaCost > 0 && (
                             <div className="mt-1 text-xs space-y-0.5">
                               <div className="text-muted-foreground">
