@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useProjects, useCreateProject, useAddCalculation, useDeleteProject } from "@/hooks/use-projects";
-import { Plus, Save, Loader2, Layers, BrickWall, FileImage, Trash2, Scale } from "lucide-react";
+import { Plus, Save, Loader2, Layers, BrickWall, FileImage, Trash2, Scale, DollarSign } from "lucide-react";
 import construccionLosaImg from "@assets/construccion-losa.jpeg";
 import panelEstructuralImg from "@assets/panel-estructural.jpeg";
 import { SlabComparator } from "@/components/SlabComparator";
@@ -28,7 +28,15 @@ const slabFormSchema = z.object({
   beamDepth: z.enum(["P-15", "P-20", "P-25"]),
   density: z.coerce.number().min(10).max(25),
   climate: z.enum(["Caluroso", "Frío"]),
+  viguetaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
+  bovedillaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
 });
+
+const getPeralteFromClaro = (shortestSide: number): "P-15" | "P-20" | "P-25" => {
+  if (shortestSide <= 4) return "P-15";
+  if (shortestSide <= 5) return "P-20";
+  return "P-25";
+};
 
 const wallFormSchema = z.object({
   length: z.coerce.number().min(1, "La longitud debe ser mayor a 0"),
@@ -57,6 +65,8 @@ export default function CalculatorPage() {
       beamDepth: "P-15",
       density: 12,
       climate: "Caluroso",
+      viguetaPrice: 0,
+      bovedillaPrice: 0,
     },
   });
 
@@ -112,15 +122,23 @@ export default function CalculatorPage() {
     const projectId = parseInt(selectedProjectId);
     const layout = calculateLayout(values.length, values.width);
     
+    const shortestSide = Math.min(values.length, values.width);
+    const calculatedPeralte = getPeralteFromClaro(shortestSide);
+    
     const specs = { 
-      beamDepth: values.beamDepth, 
+      beamDepth: calculatedPeralte, 
       polystyreneDensity: values.density,
       climate: values.climate,
-      dimensions: { length: values.length, width: values.width }
+      dimensions: { length: values.length, width: values.width },
+      prices: {
+        vigueta: values.viguetaPrice,
+        bovedilla: values.bovedillaPrice,
+        peralte: calculatedPeralte
+      }
     };
     
-    const concreteSaved = area * 0.08;
-    const weightReduced = area * 120;
+    const concreteSaved = area * 0.03;
+    const weightReduced = area * 72;
     
     await addCalculation.mutateAsync({
       projectId,
@@ -426,6 +444,60 @@ export default function CalculatorPage() {
                         <p className="text-xs text-center font-medium text-primary">
                           Resistencia recomendada: f'c = 250 kg/cm² para Losa Vigueta Bovedilla
                         </p>
+                      </div>
+                      
+                      <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Precios para Presupuesto
+                        </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Peralte requerido: <span className="font-bold text-primary">
+                            {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))}
+                          </span> (basado en claro de {Math.min(slabForm.watch("length"), slabForm.watch("width")).toFixed(2)}m)
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={slabForm.control}
+                            name="viguetaPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">
+                                  Vigueta {getPeralteFromClaro(Math.min(slabForm.watch("length"), slabForm.watch("width")))} ($/pieza)
+                                </FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    {...field}
+                                    className="h-10"
+                                    data-testid="input-vigueta-price"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={slabForm.control}
+                            name="bovedillaPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Bovedilla ($/m³)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    {...field}
+                                    className="h-10"
+                                    data-testid="input-bovedilla-price"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

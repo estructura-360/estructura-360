@@ -26,14 +26,42 @@ export default function BudgetPage() {
     if (!projectDetails?.calculations) return [];
     
     return projectDetails.calculations.map((calc: any) => {
-      const unitPrice = calc.type === 'slab' ? 450 : 320; 
-      const baseCost = parseFloat(calc.area) * unitPrice;
+      let materialCost = 0;
+      let viguetaCost = 0;
+      let bovedillaCost = 0;
+      let viguetaCount = 0;
+      let bovedillaVolume = 0;
+      
+      if (calc.type === 'slab') {
+        const specs = calc.specs as any;
+        const results = calc.results as any;
+        const prices = specs?.prices || {};
+        
+        viguetaCount = results?.materials?.beams || 0;
+        const bovedillaCount = results?.materials?.vaults || 0;
+        const bovedillaPieceVolume = 1.22 * 0.63 * 0.12;
+        bovedillaVolume = bovedillaCount * bovedillaPieceVolume;
+        
+        const viguetaUnitPrice = prices?.vigueta || 0;
+        const bovedillaPricePerM3 = prices?.bovedilla || 0;
+        
+        viguetaCost = viguetaCount * viguetaUnitPrice;
+        bovedillaCost = bovedillaVolume * bovedillaPricePerM3;
+        materialCost = viguetaCost + bovedillaCost;
+      } else {
+        materialCost = parseFloat(calc.area) * 320;
+      }
+      
+      const baseCost = materialCost > 0 ? materialCost : parseFloat(calc.area) * (calc.type === 'slab' ? 450 : 320);
       const profit = baseCost * (profitMargin / 100);
       const total = baseCost + profit;
       
       return {
         ...calc,
-        unitPrice,
+        viguetaCost,
+        bovedillaCost,
+        viguetaCount,
+        bovedillaVolume,
         baseCost,
         total
       };
@@ -223,9 +251,21 @@ _Generado por Estructura 360 Engineering_
                           <span className="block text-xs text-muted-foreground font-normal">
                             {item.type === 'slab' ? (item.specs as any).beamDepth : (item.specs as any).wallType}
                           </span>
+                          {item.type === 'slab' && item.viguetaCost > 0 && (
+                            <div className="mt-1 text-xs space-y-0.5">
+                              <div className="text-violet-600">Viguetas: {item.viguetaCount} pzas × ${((item.specs as any).prices?.vigueta || 0).toLocaleString()} = ${item.viguetaCost.toLocaleString()}</div>
+                              <div className="text-orange-600">Bovedilla: {item.bovedillaVolume.toFixed(2)} m³ × ${((item.specs as any).prices?.bovedilla || 0).toLocaleString()} = ${item.bovedillaCost.toLocaleString()}</div>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>{item.area} m²</TableCell>
-                        <TableCell>${item.unitPrice}</TableCell>
+                        <TableCell>
+                          {item.type === 'slab' && item.viguetaCost > 0 ? (
+                            <span className="text-xs text-muted-foreground">Ver desglose</span>
+                          ) : (
+                            `$${(item.baseCost / parseFloat(item.area)).toFixed(0)}/m²`
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-bold text-primary">
                           ${item.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
