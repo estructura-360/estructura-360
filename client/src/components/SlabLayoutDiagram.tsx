@@ -41,18 +41,17 @@ export function SlabLayoutDiagram({ layout, length: lengthProp, width: widthProp
   const svgWidth = Math.max(longestSide * scale + padding * 2 + legendWidth, 500);
   const svgHeight = Math.max(shortestSide * scale + padding * 2, 350);
   
-  // FÓRMULA CORRECTA - Viguetas: dividir lado corto entre 0.70, sin descontar cadenas
-  const numJoists = Math.floor(shortestSide / 0.70);
   const usableLength = longestSide - 0.30;
-  const joistSpacing = usableLength / Math.max(numJoists, 1);
+  const numJoists = Math.floor(usableLength / 0.70);
+  const joistSpacing = usableLength / numJoists;
   
   const joistPositions: number[] = [];
   for (let i = 0; i < numJoists; i++) {
     joistPositions.push(0.15 + joistSpacing * (i + 0.5));
   }
   
-  // FÓRMULA CORRECTA - Bovedillas: longitud entre 1.22
-  const numBovedillasPerRow = Math.ceil(longestSide / BOVEDILLA.length);
+  const usableWidth = shortestSide - 0.30;
+  const numBovedillasPerRow = Math.ceil(usableWidth / BOVEDILLA.width);
   
   return (
     <Card className="border-0 shadow-xl overflow-hidden">
