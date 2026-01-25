@@ -1030,7 +1030,7 @@ export function SlabComparator() {
             <CardHeader className="bg-slate-900 text-white">
               <CardTitle className="text-lg">Plano de Distribución</CardTitle>
               <CardDescription className="text-slate-300">
-                Vista técnica estilo AutoCAD - Viguetas cada 70cm con bovedilla de poliestireno (1.22×0.63m)
+                Vista técnica - Viguetas cada 70cm con bovedilla de poliestireno (1.22×0.63m)
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 bg-slate-900">

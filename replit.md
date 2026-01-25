@@ -87,7 +87,7 @@ Compares Losa Tradicional (10cm) vs Losa Vigueta Bovedilla with polystyrene:
 - Price inputs: Cement, Sand, Gravel, Water, Vigueta, Bovedilla
 - Compression layer slider (3-7 cm)
 - Comparative materials table with costs
-- SVG floor plan: AutoCAD dark style, cyan viguetas, orange bovedillas, adjustment pieces
+- SVG floor plan: Dark background, colored viguetas by peralte, bovedillas, adjustment pieces
 - Worker slider (1-30) for time estimation
 - PDF budget generation with comparison table
 

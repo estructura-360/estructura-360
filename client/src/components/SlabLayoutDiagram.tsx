@@ -70,7 +70,7 @@ export function SlabLayoutDiagram({ layout, length: lengthProp, width: widthProp
           </Badge>
         </div>
         <p className="text-sm text-slate-400 mt-1">
-          Vista técnica estilo AutoCAD - Viguetas cada 70cm con bovedilla de poliestireno (1.22×0.63m)
+          Vista técnica - Viguetas cada 70cm con bovedilla de poliestireno (1.22×0.63m)
         </p>
       </CardHeader>
       <CardContent className="p-0 bg-slate-900">

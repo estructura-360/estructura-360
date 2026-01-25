@@ -367,7 +367,7 @@ export default function BudgetPage() {
         
         planoY += 10;
         
-        // Draw floor plan - AutoCAD style
+        // Draw floor plan
         const planAreaWidth = 120;
         const planAreaHeight = 90;
         const legendWidth = 55;
