@@ -367,107 +367,155 @@ export default function BudgetPage() {
         
         planoY += 10;
         
-        // Draw floor plan
-        const planWidth = 160;
-        const planHeight = 100;
-        const planX = margin + 10;
+        // Draw floor plan - AutoCAD style
+        const planAreaWidth = 120;
+        const planAreaHeight = 90;
+        const legendWidth = 55;
+        const planX = margin;
         const planY = planoY;
         
-        // Scale to fit
-        const scaleX = (planWidth - 40) / longestSide;
-        const scaleY = (planHeight - 20) / shortestSide;
+        // Background for entire section
+        doc.setFillColor(30, 41, 59);
+        doc.roundedRect(margin, planY, planAreaWidth + legendWidth + 10, planAreaHeight + 25, 3, 3, 'F');
+        
+        // Scale calculation - viguetas run along the longest side (largo)
+        const largo = longestSide; // horizontal
+        const claro = shortestSide; // vertical (span between supports)
+        
+        const scaleX = (planAreaWidth - 30) / largo;
+        const scaleY = (planAreaHeight - 20) / claro;
         const scale = Math.min(scaleX, scaleY);
         
-        const drawWidth = longestSide * scale;
-        const drawHeight = shortestSide * scale;
-        const offsetX = planX + (planWidth - drawWidth) / 2;
-        const offsetY = planY + 10;
+        const drawWidth = largo * scale;
+        const drawHeight = claro * scale;
+        const offsetX = planX + 20;
+        const offsetY = planY + 20;
         
-        // Background
-        doc.setFillColor(30, 41, 59);
-        doc.roundedRect(margin, planY, planWidth, planHeight, 3, 3, 'F');
+        // Dimension label at top - largo
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${largo.toFixed(2)} m (largo)`, offsetX + drawWidth / 2, offsetY - 8, { align: 'center' });
         
-        // Grid
-        doc.setDrawColor(51, 65, 85);
-        doc.setLineWidth(0.1);
-        for (let x = 0; x <= drawWidth; x += 10) {
-          doc.line(offsetX + x, offsetY, offsetX + x, offsetY + drawHeight);
-        }
-        for (let y = 0; y <= drawHeight; y += 10) {
-          doc.line(offsetX, offsetY + y, offsetX + drawWidth, offsetY + y);
-        }
+        // Bovedilla background - fill entire interior with salmon/orange color
+        const chainMargin = 0.15 * scale;
+        doc.setFillColor(180, 130, 100); // Salmon/tan color like the reference
+        doc.rect(offsetX + chainMargin, offsetY + chainMargin, drawWidth - chainMargin * 2, drawHeight - chainMargin * 2, 'F');
         
-        // Perimeter
-        doc.setDrawColor(148, 163, 184);
-        doc.setLineWidth(0.8);
-        doc.rect(offsetX, offsetY, drawWidth, drawHeight);
-        
-        // Chain (cadena perimetral)
-        const chainWidth = 0.15 * scale;
-        doc.setFillColor(100, 116, 139);
-        doc.rect(offsetX, offsetY, chainWidth, drawHeight, 'F');
-        doc.rect(offsetX + drawWidth - chainWidth, offsetY, chainWidth, drawHeight, 'F');
-        doc.rect(offsetX, offsetY, drawWidth, chainWidth, 'F');
-        doc.rect(offsetX, offsetY + drawHeight - chainWidth, drawWidth, chainWidth, 'F');
-        
-        // Draw joists (viguetas)
-        const usableLength = longestSide - 0.30;
-        const joistSpacing = usableLength / layout.joistCount;
+        // Draw viguetas (VERTICAL lines) with labels at top
+        const joistSpacing = 0.70; // 70cm standard
+        const numJoists = Math.floor((largo - 0.30) / joistSpacing);
         
         doc.setDrawColor(peralteColor.r, peralteColor.g, peralteColor.b);
-        doc.setLineWidth(1.5);
+        doc.setLineWidth(1.2);
+        doc.setFontSize(6);
         
-        for (let i = 0; i < layout.joistCount; i++) {
-          const joistX = offsetX + (0.15 + joistSpacing * (i + 0.5)) * scale;
-          doc.line(joistX, offsetY + chainWidth, joistX, offsetY + drawHeight - chainWidth);
+        for (let i = 0; i < numJoists; i++) {
+          const joistX = offsetX + chainMargin + (joistSpacing * (i + 0.5)) * scale;
+          if (joistX < offsetX + drawWidth - chainMargin) {
+            // Draw vigueta line (vertical)
+            doc.line(joistX, offsetY + chainMargin, joistX, offsetY + drawHeight - chainMargin);
+            // Label at top
+            doc.setTextColor(peralteColor.r, peralteColor.g, peralteColor.b);
+            doc.text(`P${peralte}`, joistX, offsetY - 2, { align: 'center' });
+          }
         }
         
-        // Draw bovedillas (simplified representation)
-        doc.setFillColor(249, 115, 22);
-        const bovedillaHeight = 0.63 * scale;
-        const usableW = shortestSide - 0.30;
-        const numBovedillaRows = Math.ceil(usableW / 0.63);
+        // Draw bovedilla grid lines (horizontal) between viguetas
+        const bovedillaLength = 1.22; // 1.22m standard
+        const numBovedillaRows = Math.ceil(claro / bovedillaLength);
         
-        for (let i = 0; i < layout.joistCount - 1; i++) {
-          const bayX = offsetX + (0.15 + joistSpacing * (i + 0.5)) * scale + 2;
-          const bayWidth = joistSpacing * scale - 4;
-          
-          for (let j = 0; j < numBovedillaRows && j < 3; j++) {
-            const bovY = offsetY + chainWidth + j * bovedillaHeight + 2;
-            if (bovY + bovedillaHeight - 4 < offsetY + drawHeight - chainWidth) {
-              doc.setFillColor(249, 115, 22);
-              doc.roundedRect(bayX, bovY, bayWidth, bovedillaHeight - 4, 1, 1, 'F');
+        doc.setDrawColor(249, 115, 22);
+        doc.setLineWidth(0.3);
+        
+        for (let row = 1; row < numBovedillaRows; row++) {
+          const lineY = offsetY + chainMargin + row * bovedillaLength * scale;
+          if (lineY < offsetY + drawHeight - chainMargin) {
+            doc.line(offsetX + chainMargin, lineY, offsetX + drawWidth - chainMargin, lineY);
+          }
+        }
+        
+        // Adjustment row at bottom (different color)
+        const adjustmentHeight = (claro % bovedillaLength) * scale;
+        if (adjustmentHeight > 5) {
+          doc.setFillColor(200, 150, 120); // Lighter color for adjustment
+          doc.rect(offsetX + chainMargin, offsetY + drawHeight - chainMargin - adjustmentHeight, 
+                   drawWidth - chainMargin * 2, adjustmentHeight, 'F');
+          // Redraw viguetas over adjustment area
+          doc.setDrawColor(peralteColor.r, peralteColor.g, peralteColor.b);
+          doc.setLineWidth(1.2);
+          for (let i = 0; i < numJoists; i++) {
+            const joistX = offsetX + chainMargin + (joistSpacing * (i + 0.5)) * scale;
+            if (joistX < offsetX + drawWidth - chainMargin) {
+              doc.line(joistX, offsetY + drawHeight - chainMargin - adjustmentHeight, 
+                       joistX, offsetY + drawHeight - chainMargin);
             }
           }
         }
         
-        // Dimensions
+        // Cadena perimetral (dashed line)
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineWidth(0.8);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.rect(offsetX, offsetY, drawWidth, drawHeight);
+        doc.setLineDashPattern([], 0);
+        
+        // Dimension label on left - claro (vertical)
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${claro.toFixed(2)} m`, offsetX - 5, offsetY + drawHeight / 2, { align: 'right', angle: 90 });
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.text(`(claro)`, offsetX - 12, offsetY + drawHeight / 2, { align: 'right', angle: 90 });
+        
+        // Legend on the right side
+        const legendX = offsetX + drawWidth + 15;
+        let legendY = planY + 15;
+        
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(8);
-        doc.text(`${longestSide.toFixed(2)}m`, offsetX + drawWidth / 2, offsetY + drawHeight + 8, { align: 'center' });
+        doc.setFont("helvetica", "bold");
+        doc.text("Leyenda Viguetas:", legendX, legendY);
+        legendY += 8;
         
-        // Rotate for height dimension
-        doc.text(`${shortestSide.toFixed(2)}m`, offsetX - 8, offsetY + drawHeight / 2, { align: 'center', angle: 90 });
-        
-        // Legend
-        const legendX = planX + planWidth - 50;
-        const legendY = planY + 8;
-        
+        // Vigueta legend item
         doc.setFillColor(peralteColor.r, peralteColor.g, peralteColor.b);
-        doc.rect(legendX, legendY, 10, 3, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(6);
-        doc.text("Viguetas", legendX + 12, legendY + 2.5);
+        doc.rect(legendX, legendY - 2, 15, 2, 'F');
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.text(`P-${peralte} (${numJoists} pzas)`, legendX + 18, legendY);
+        legendY += 12;
         
-        doc.setFillColor(249, 115, 22);
-        doc.rect(legendX, legendY + 6, 10, 3, 'F');
-        doc.text("Bovedillas", legendX + 12, legendY + 8.5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text("Otros:", legendX, legendY);
+        legendY += 8;
         
-        doc.setFillColor(100, 116, 139);
-        doc.rect(legendX, legendY + 12, 10, 3, 'F');
-        doc.text("Cadena", legendX + 12, legendY + 14.5);
+        // Bovedilla legend
+        doc.setFillColor(180, 130, 100);
+        doc.setDrawColor(249, 115, 22);
+        doc.setLineWidth(0.5);
+        doc.rect(legendX, legendY - 3, 12, 6, 'FD');
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.text("Bovedilla", legendX + 16, legendY + 1);
+        legendY += 10;
         
-        planoY += planHeight + 20;
+        // Ajuste legend
+        doc.setFillColor(200, 150, 120);
+        doc.rect(legendX, legendY - 3, 12, 6, 'FD');
+        doc.text("Ajuste", legendX + 16, legendY + 1);
+        legendY += 10;
+        
+        // Cadena legend
+        doc.setDrawColor(148, 163, 184);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.rect(legendX, legendY - 3, 12, 6);
+        doc.setLineDashPattern([], 0);
+        doc.text("Cadena", legendX + 16, legendY + 1);
+        
+        planoY += planAreaHeight + 35;
       });
       
       // Technical notes
