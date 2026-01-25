@@ -56,9 +56,9 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
   const shortestSide = Math.min(length, width);
   const orientation = length >= width ? 'horizontal' : 'vertical';
   
-  // Calculate number of viguetas: divide longest side by 0.70, round DOWN
+  // Calculate number of viguetas: divide shortest side (claro) by 0.70, round DOWN
   // No viguetas at edges (space for perimeter chain)
-  const numJoists = Math.floor(longestSide / BOVEDILLA.axisDistance);
+  const numJoists = Math.floor(shortestSide / BOVEDILLA.axisDistance);
   
   // Joist length is the shortest side (joists span across the shortest dimension)
   const joistLength = shortestSide;
