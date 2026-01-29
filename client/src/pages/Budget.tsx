@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "@shared/routes";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { calculateLayout } from "@/lib/layoutPlanner";
 import logoImg from "../assets/logo-estructura360.png";
 import { EnvironmentalBenefits } from "@/components/EnvironmentalBenefits";
 
@@ -147,108 +146,127 @@ export default function BudgetPage() {
     try {
       const logo = await loadImage(logoImg);
       
-      // ====== PAGE 1: PRESUPUESTO ======
+      // ====== PAGE 1: PRESUPUESTO (según formato oficial) ======
       
-      // Header with logo
-      doc.setFillColor(255, 255, 255);
-      doc.rect(0, 0, pageWidth, 35, 'F');
-      doc.setFillColor(249, 115, 22);
-      doc.rect(0, 35, pageWidth, 2, 'F');
+      // Header with logo and date/folio on right
+      doc.addImage(logo, 'PNG', margin, 5, 70, 22);
       
-      // Add logo
-      doc.addImage(logo, 'PNG', margin, 5, 80, 25);
-      
-      // Date on the right
+      // Date and Folio on the right
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      doc.text(`Fecha: ${new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth - margin, 15, { align: 'right' });
-      doc.text(`Folio: #E360-${projectDetails.id}-${new Date().getFullYear()}`, pageWidth - margin, 22, { align: 'right' });
+      const dateStr = new Date().toLocaleDateString('es-MX', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      doc.text(`Fecha: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}.`, pageWidth - margin, 12, { align: 'right' });
+      doc.text(`Folio: #ENG${String(projectDetails.id).padStart(3, '0')}-001`, pageWidth - margin, 20, { align: 'right' });
       
-      // Project info box
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(margin, 42, pageWidth - margin * 2, 20, 3, 3, 'F');
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(margin, 42, pageWidth - margin * 2, 20, 3, 3, 'S');
+      // Orange line separator
+      doc.setFillColor(249, 115, 22);
+      doc.rect(0, 32, pageWidth, 2, 'F');
       
+      // PRESUPUESTO title
       doc.setTextColor(15, 23, 42);
-      doc.setFontSize(14);
+      doc.setFontSize(18);
       doc.setFont("helvetica", "bold");
-      doc.text("PRESUPUESTO", margin + 5, 52);
-      doc.setFontSize(10);
+      doc.text("PRESUPUESTO", margin, 45);
+      
+      // Cliente
+      doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      doc.text(`Cliente: ${projectDetails.clientName}`, margin + 5, 58);
+      doc.text(`Cliente: ${projectDetails.clientName}`, margin, 54);
+      
+      // Line separator
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, 58, pageWidth - margin, 58);
       
       // Materials section header
       doc.setFillColor(15, 23, 42);
-      doc.rect(margin, 68, pageWidth - margin * 2, 8, 'F');
+      doc.rect(margin, 62, pageWidth - margin * 2, 8, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      doc.text("DESGLOSE DE MATERIALES", margin + 3, 74);
+      doc.text("DESGLOSE DE MATERIALES", margin + 3, 68);
 
-      // Build table data with correct specs
+      // Build table data with correct specs matching the template format
       const tableData: string[][] = [];
       
       budgetItems.forEach(item => {
-        const area = parseFloat(item.area) || 0;
         const specs = item.specs as any;
-        const unitPrice = area > 0 ? item.baseCost / area : 0;
         
         if (item.type === 'slab') {
-          const viguetaType = specs?.viguetaTypeLabel || specs?.viguetaType || 'Vigueta';
-          const density = specs?.polystyreneDensity || 10;
+          const viguetaType = specs?.viguetaType || 'almaAbierta';
+          const viguetaTypeLabel = viguetaType === 'pretensada' ? 'Vigueta Pretensada' : 'Vigueta de Alma Abierta';
           const viguetaPrice = specs?.prices?.vigueta || 0;
           const bovedillaPrice = specs?.prices?.bovedilla || 0;
+          const mallaPrice = specs?.prices?.malla || 0;
           const dimensions = specs?.dimensions;
-          const dimText = dimensions ? `${dimensions.length}m × ${dimensions.width}m` : '';
+          const dimText = dimensions ? `(${dimensions.length}m × ${dimensions.width}m)` : '';
           
+          // Get peralte from specs
+          const peralte = specs?.peralte || 20;
+          const peralteHeight = peralte === 15 ? 0.15 : peralte === 25 ? 0.25 : 0.20;
+          const bovedillaDimensions = `1.22 × 0.63 × ${peralteHeight.toFixed(2)} m`;
+          
+          // Losa header row
           tableData.push([
-            `LOSA VIGUETA Y BOVEDILLA ${dimText}`,
-            `${area.toFixed(2)} m²`,
-            `$${unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-            `$${item.baseCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+            `Losa Vigueta Bovedilla EPS ${dimText}`,
+            '',
+            '',
+            ''
           ]);
           
+          // Vigueta row
           if (item.viguetaCount > 0) {
+            const viguetaLabel = `${viguetaTypeLabel} Peralte ${peralte}`;
             tableData.push([
-              `    ${viguetaType}`,
+              `    ${viguetaLabel}`,
               `${item.viguetaCount} pzas`,
-              `$${viguetaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} c/u`,
-              `$${item.viguetaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+              `$${viguetaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,
+              `$${item.viguetaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`
             ]);
           }
           
+          // Bovedilla row
           if (item.bovedillaVolume > 0) {
+            const bovedillaCount = Math.ceil(item.bovedillaVolume / (1.22 * 0.63 * peralteHeight));
             tableData.push([
-              `    Bovedilla EPS ${density} kg/m³`,
-              `${item.bovedillaVolume.toFixed(2)} m³`,
-              `$${bovedillaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}/m³`,
-              `$${item.bovedillaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+              `    Bovedilla EPS 8 kg/m³ (${bovedillaDimensions})`,
+              `${bovedillaCount} pzas`,
+              `$${bovedillaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,
+              `$${item.bovedillaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`
             ]);
           }
+          
+          // Malla electrosoldada row
+          if (item.mallaSheets > 0) {
+            tableData.push([
+              `    Malla Electrosoldada 66-10-10`,
+              `${item.mallaSheets} hojas`,
+              `$${mallaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,
+              `$${item.mallaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`
+            ]);
+          }
+          
         } else if (item.type === 'wall') {
+          const panelPrice = specs?.prices?.panelPrice || 0;
+          const thickness = specs?.panelThickness || 3;
+          
           tableData.push([
-            'MURO PANEL ESTRUCTURAL',
-            `${area.toFixed(2)} m²`,
-            `$${unitPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`,
-            `$${item.baseCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
+            `Panel Estructural EPS ${thickness}" (1.22 × 2.44 m)`,
+            `${item.panelCount} pzas`,
+            `$${panelPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,
+            `$${item.panelCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`
           ]);
         }
       });
 
-      if (totalLaborCost > 0) {
-        tableData.push([
-          'MANO DE OBRA',
-          `${totalArea.toFixed(2)} m²`,
-          `$${parseFloat(projectDetails?.laborCostPerM2 || "0").toLocaleString('es-MX', { minimumFractionDigits: 2 })}/m²`,
-          `$${totalLaborCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
-        ]);
-      }
-
       autoTable(doc, {
-        startY: 78,
-        head: [['Concepto', 'Cantidad', 'P. Unitario', 'Importe']],
+        startY: 72,
+        head: [['Concepto', 'Cantidad', 'Precio Unitario', 'Importe']],
         body: tableData,
         headStyles: { 
           fillColor: [241, 245, 249],
@@ -259,8 +277,8 @@ export default function BudgetPage() {
         bodyStyles: { fontSize: 9 },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
-          0: { cellWidth: 80 },
-          1: { cellWidth: 35, halign: 'center' },
+          0: { cellWidth: 85 },
+          1: { cellWidth: 30, halign: 'center' },
           2: { cellWidth: 35, halign: 'right' },
           3: { cellWidth: 35, halign: 'right' }
         },
@@ -272,37 +290,52 @@ export default function BudgetPage() {
 
       const finalY = (doc as any).lastTableFinalY || 140;
 
-    // Summary box
+    // Environmental benefits box on the left
+    doc.setFillColor(220, 252, 231);
+    doc.roundedRect(margin, finalY + 5, 85, 45, 3, 3, 'F');
+    doc.setTextColor(22, 101, 52);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("BENEFICIOS AMBIENTALES", margin + 5, finalY + 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text("• 30% menos uso de agua", margin + 5, finalY + 22);
+    doc.text("• 70% menos cimbrado (madera)", margin + 5, finalY + 28);
+    doc.text("• Menor huella de carbono", margin + 5, finalY + 34);
+    doc.text("• EPS 100% reciclable", margin + 5, finalY + 40);
+    doc.text("• Aislamiento térmico superior", margin + 5, finalY + 46);
+
+    // Summary box on the right - calculate based on material cost only (matching template)
+    const pdfSubtotalMateriales = totalMaterialCost;
+    const pdfUtilidad = pdfSubtotalMateriales * (profitMargin / 100);
+    const pdfSubtotal = pdfSubtotalMateriales + pdfUtilidad;
+    const pdfIVA = pdfSubtotal * 0.16;
+    const pdfTotal = pdfSubtotal + pdfIVA;
+    
     doc.setFillColor(248, 250, 252);
-    doc.roundedRect(105, finalY + 5, 90, 55, 3, 3, 'F');
+    doc.roundedRect(105, finalY + 5, 90, 50, 3, 3, 'F');
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(105, finalY + 5, 90, 55, 3, 3, 'S');
+    doc.roundedRect(105, finalY + 5, 90, 50, 3, 3, 'S');
     
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     
-    let summaryY = finalY + 15;
+    let summaryY = finalY + 14;
     doc.text("Subtotal Materiales:", 110, summaryY);
-    doc.text(`$${totalMaterialCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 190, summaryY, { align: 'right' });
+    doc.text(`$${pdfSubtotalMateriales.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY, { align: 'right' });
     
-    if (totalLaborCost > 0) {
-      summaryY += 6;
-      doc.text("Mano de Obra:", 110, summaryY);
-      doc.text(`$${totalLaborCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 190, summaryY, { align: 'right' });
-    }
-    
-    summaryY += 6;
+    summaryY += 7;
     doc.text(`Utilidad (${profitMargin}%):`, 110, summaryY);
-    doc.text(`$${currentProfit.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 190, summaryY, { align: 'right' });
+    doc.text(`$${pdfUtilidad.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY, { align: 'right' });
     
-    summaryY += 6;
+    summaryY += 7;
     doc.text("Subtotal:", 110, summaryY);
-    doc.text(`$${totalBudget.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 190, summaryY, { align: 'right' });
+    doc.text(`$${pdfSubtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY, { align: 'right' });
     
-    summaryY += 6;
+    summaryY += 7;
     doc.text("IVA (16%):", 110, summaryY);
-    doc.text(`$${(totalBudget * 0.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, 190, summaryY, { align: 'right' });
+    doc.text(`$${pdfIVA.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY, { align: 'right' });
     
     // Total highlight
     doc.setFillColor(15, 23, 42);
@@ -311,18 +344,7 @@ export default function BudgetPage() {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("TOTAL:", 110, summaryY + 10);
-    doc.text(`$${(totalBudget * 1.16).toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY + 10, { align: 'right' });
-
-    // Environmental benefits box
-    doc.setFillColor(220, 252, 231);
-    doc.roundedRect(margin, finalY + 5, 85, 30, 3, 3, 'F');
-    doc.setTextColor(22, 101, 52);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.text("BENEFICIOS AMBIENTALES", margin + 5, finalY + 14);
-    doc.setFont("helvetica", "normal");
-    doc.text("30% menos uso de agua", margin + 5, finalY + 22);
-    doc.text("70% menos cimbrado (madera)", margin + 5, finalY + 28);
+    doc.text(`$${pdfTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`, 190, summaryY + 10, { align: 'right' });
 
     // Footer
     doc.setTextColor(150, 150, 150);
@@ -331,250 +353,8 @@ export default function BudgetPage() {
     doc.text("Precios sujetos a cambio sin previo aviso. No incluye instalación eléctrica ni hidráulica.", margin, 280);
     doc.setFont("helvetica", "bold");
     doc.text("Generado por ESTRUCTURA 360 - www.estructura360.com", margin, 288);
-    
-    // ====== PAGE 2: PLANO DE DISTRIBUCIÓN (if there are slab calculations) ======
-    const slabItems = budgetItems.filter(item => item.type === 'slab');
-    
-    if (slabItems.length > 0) {
-      doc.addPage();
-      
-      // Header for page 2
-      doc.setFillColor(15, 23, 42);
-      doc.rect(0, 0, pageWidth, 30, 'F');
-      doc.setFillColor(249, 115, 22);
-      doc.rect(0, 30, pageWidth, 2, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      doc.text("PLANO DE DISTRIBUCIÓN", margin, 20);
-      
-      let planoY = 40;
-      
-      slabItems.forEach((item, idx) => {
-        const specs = item.specs as any;
-        const length = parseFloat(specs?.dimensions?.length) || parseFloat(specs?.length) || 6;
-        const width = parseFloat(specs?.dimensions?.width) || parseFloat(specs?.width) || 4;
-        const layout = calculateLayout(length, width);
-        
-        const longestSide = Math.max(length, width);
-        const shortestSide = Math.min(length, width);
-        
-        // Get vigueta type and density from specs
-        const viguetaType = specs?.viguetaTypeLabel || specs?.viguetaType || 'Vigueta';
-        const density = specs?.polystyreneDensity || 10;
-        
-        // Get peralte based on shortest side
-        let peralte = 15;
-        let peralteColor = { r: 34, g: 211, b: 238 }; // cyan
-        if (shortestSide > 5) {
-          peralte = 25;
-          peralteColor = { r: 244, g: 63, b: 94 }; // rose
-        } else if (shortestSide > 4) {
-          peralte = 20;
-          peralteColor = { r: 168, g: 85, b: 247 }; // violet
-        }
-        
-        // Section title
-        doc.setTextColor(15, 23, 42);
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Losa ${idx + 1}: ${length.toFixed(2)}m x ${width.toFixed(2)}m = ${(length * width).toFixed(2)} m²`, margin, planoY);
-        
-        planoY += 7;
-        
-        // Technical specs - show vigueta type and density
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(100, 116, 139);
-        doc.text(`${viguetaType} | Bovedilla EPS ${density} kg/m³ | Peralte P-${peralte}`, margin, planoY);
-        
-        planoY += 6;
-        doc.text(`Viguetas: ${layout.joistCount} pzas | Bovedillas: ${layout.totalVaults} pzas`, margin, planoY);
-        
-        planoY += 10;
-        
-        // Draw floor plan
-        const planAreaWidth = 120;
-        const planAreaHeight = 90;
-        const legendWidth = 55;
-        const planX = margin;
-        const planY = planoY;
-        
-        // Background for entire section
-        doc.setFillColor(30, 41, 59);
-        doc.roundedRect(margin, planY, planAreaWidth + legendWidth + 10, planAreaHeight + 25, 3, 3, 'F');
-        
-        // Scale calculation - viguetas run along the longest side (largo)
-        const largo = longestSide; // horizontal
-        const claro = shortestSide; // vertical (span between supports)
-        
-        const scaleX = (planAreaWidth - 30) / largo;
-        const scaleY = (planAreaHeight - 20) / claro;
-        const scale = Math.min(scaleX, scaleY);
-        
-        const drawWidth = largo * scale;
-        const drawHeight = claro * scale;
-        const offsetX = planX + 20;
-        const offsetY = planY + 20;
-        
-        // Dimension label at top - largo
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text(`${largo.toFixed(2)} m (largo)`, offsetX + drawWidth / 2, offsetY - 8, { align: 'center' });
-        
-        // Bovedilla background - fill entire interior with salmon/orange color
-        const chainMargin = 0.15 * scale;
-        doc.setFillColor(180, 130, 100); // Salmon/tan color like the reference
-        doc.rect(offsetX + chainMargin, offsetY + chainMargin, drawWidth - chainMargin * 2, drawHeight - chainMargin * 2, 'F');
-        
-        // Draw viguetas (VERTICAL lines) with labels at top
-        // Use the joistCount from the layout calculation (consistent with stored data)
-        const numJoists = layout.joistCount;
-        const joistSpacing = (largo - 0.30) / numJoists; // Distribute evenly
-        
-        doc.setDrawColor(peralteColor.r, peralteColor.g, peralteColor.b);
-        doc.setLineWidth(1.2);
-        doc.setFontSize(6);
-        
-        for (let i = 0; i < numJoists; i++) {
-          const joistX = offsetX + chainMargin + (joistSpacing * (i + 0.5)) * scale;
-          if (joistX < offsetX + drawWidth - chainMargin) {
-            // Draw vigueta line (vertical)
-            doc.line(joistX, offsetY + chainMargin, joistX, offsetY + drawHeight - chainMargin);
-            // Label at top
-            doc.setTextColor(peralteColor.r, peralteColor.g, peralteColor.b);
-            doc.text(`P${peralte}`, joistX, offsetY - 2, { align: 'center' });
-          }
-        }
-        
-        // Draw bovedilla grid lines (horizontal) between viguetas
-        const bovedillaLength = 1.22; // 1.22m standard
-        const numBovedillaRows = Math.ceil(claro / bovedillaLength);
-        
-        doc.setDrawColor(249, 115, 22);
-        doc.setLineWidth(0.3);
-        
-        for (let row = 1; row < numBovedillaRows; row++) {
-          const lineY = offsetY + chainMargin + row * bovedillaLength * scale;
-          if (lineY < offsetY + drawHeight - chainMargin) {
-            doc.line(offsetX + chainMargin, lineY, offsetX + drawWidth - chainMargin, lineY);
-          }
-        }
-        
-        // Adjustment row at bottom (different color)
-        const adjustmentHeight = (claro % bovedillaLength) * scale;
-        if (adjustmentHeight > 5) {
-          doc.setFillColor(200, 150, 120); // Lighter color for adjustment
-          doc.rect(offsetX + chainMargin, offsetY + drawHeight - chainMargin - adjustmentHeight, 
-                   drawWidth - chainMargin * 2, adjustmentHeight, 'F');
-          // Redraw viguetas over adjustment area
-          doc.setDrawColor(peralteColor.r, peralteColor.g, peralteColor.b);
-          doc.setLineWidth(1.2);
-          for (let i = 0; i < numJoists; i++) {
-            const joistX = offsetX + chainMargin + (joistSpacing * (i + 0.5)) * scale;
-            if (joistX < offsetX + drawWidth - chainMargin) {
-              doc.line(joistX, offsetY + drawHeight - chainMargin - adjustmentHeight, 
-                       joistX, offsetY + drawHeight - chainMargin);
-            }
-          }
-        }
-        
-        // Cadena perimetral (dashed line)
-        doc.setDrawColor(148, 163, 184);
-        doc.setLineWidth(0.8);
-        doc.setLineDashPattern([2, 2], 0);
-        doc.rect(offsetX, offsetY, drawWidth, drawHeight);
-        doc.setLineDashPattern([], 0);
-        
-        // Dimension label on left - claro (vertical)
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "bold");
-        doc.text(`${claro.toFixed(2)} m`, offsetX - 5, offsetY + drawHeight / 2, { align: 'right', angle: 90 });
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.text(`(claro)`, offsetX - 12, offsetY + drawHeight / 2, { align: 'right', angle: 90 });
-        
-        // Legend on the right side
-        const legendX = offsetX + drawWidth + 15;
-        let legendY = planY + 15;
-        
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "bold");
-        doc.text("Leyenda Viguetas:", legendX, legendY);
-        legendY += 8;
-        
-        // Vigueta legend item
-        doc.setFillColor(peralteColor.r, peralteColor.g, peralteColor.b);
-        doc.rect(legendX, legendY - 2, 15, 2, 'F');
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.text(`P-${peralte} (${numJoists} pzas)`, legendX + 18, legendY);
-        legendY += 12;
-        
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text("Otros:", legendX, legendY);
-        legendY += 8;
-        
-        // Bovedilla legend
-        doc.setFillColor(180, 130, 100);
-        doc.setDrawColor(249, 115, 22);
-        doc.setLineWidth(0.5);
-        doc.rect(legendX, legendY - 3, 12, 6, 'FD');
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.text("Bovedilla", legendX + 16, legendY + 1);
-        legendY += 10;
-        
-        // Ajuste legend
-        doc.setFillColor(200, 150, 120);
-        doc.rect(legendX, legendY - 3, 12, 6, 'FD');
-        doc.text("Ajuste", legendX + 16, legendY + 1);
-        legendY += 10;
-        
-        // Cadena legend
-        doc.setDrawColor(148, 163, 184);
-        doc.setLineDashPattern([2, 2], 0);
-        doc.rect(legendX, legendY - 3, 12, 6);
-        doc.setLineDashPattern([], 0);
-        doc.text("Cadena", legendX + 16, legendY + 1);
-        
-        planoY += planAreaHeight + 35;
-      });
-      
-      // Technical notes
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("NOTAS TÉCNICAS:", margin, planoY);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      const notes = [
-        "• Viguetas separadas cada 70cm (eje a eje)",
-        "• Bovedilla de poliestireno expandido: 1.22m × 0.63m × 0.12m",
-        "• Apoyo mínimo de vigueta sobre muro/trabe: 5cm",
-        "• Capa de compresión recomendada: 4-5cm con malla electrosoldada",
-        "• NUNCA cortar el acero de las viguetas",
-        "• Apuntalar ANTES de colocar bovedillas"
-      ];
-      
-      notes.forEach((note, i) => {
-        doc.text(note, margin, planoY + 8 + i * 5);
-      });
-      
-      // Footer
-      doc.setTextColor(150, 150, 150);
-      doc.setFontSize(7);
-      doc.text("Este plano es una representación esquemática. Consulte con un ingeniero estructural para el proyecto ejecutivo.", margin, 285);
-    }
 
-    // Open PDF
+    // Open PDF (single page budget - no floor plans)
     const pdfBlob = doc.output('blob');
     const pdfUrl = URL.createObjectURL(pdfBlob);
     window.open(pdfUrl, '_blank');
@@ -588,7 +368,7 @@ export default function BudgetPage() {
     
       toast({
         title: "PDF Generado",
-        description: "El presupuesto con plano de distribución se abrió en una nueva pestaña.",
+        description: "El presupuesto se abrió en una nueva pestaña.",
       });
     } catch (error) {
       console.error('Error generating PDF:', error);

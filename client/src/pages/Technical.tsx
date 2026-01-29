@@ -120,8 +120,18 @@ const faqs = [
 
 const components = [
   {
+    name: "Vigueta de Alma Abierta",
+    description: "Vigueta tipo celosía, ligera y fácil de manejar. Ideal para autoconstrucción y proyectos donde la facilidad de manejo es prioritaria.",
+    specs: [
+      { label: "Material", value: "Acero estructural" },
+      { label: "Estructura", value: "Celosía triangular" },
+      { label: "Peso", value: "8-12 kg/m (ligera)" },
+      { label: "Longitudes", value: "2.0m a 6.0m" },
+    ],
+  },
+  {
     name: "Vigueta Pretensada",
-    description: "Elemento lineal de concreto con acero de presfuerzo que trabaja a flexión. Fabricada en planta con control de calidad riguroso.",
+    description: "Elemento lineal de concreto con acero de presfuerzo que trabaja a flexión. Mayor capacidad de carga para claros amplios.",
     specs: [
       { label: "Material", value: "Concreto f'c ≥ 350 kg/cm²" },
       { label: "Acero", value: "Alambre de presfuerzo fy = 17,000 kg/cm²" },
@@ -242,20 +252,19 @@ export default function TechnicalPage() {
             <CardContent className="space-y-6">
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Es un sistema constructivo prefabricado para losas de entrepiso y azotea que combina 
-                <strong className="text-primary"> viguetas pretensadas</strong> (elementos estructurales) con 
+                <strong className="text-primary"> viguetas</strong> (elementos estructurales: <em>Alma Abierta</em> o <em>Pretensada</em>) con 
                 <strong className="text-primary"> bovedillas aligerantes</strong> (elementos de relleno), unidos por una 
                 <strong className="text-primary"> capa de compresión</strong> de concreto armado.
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                <div className="p-4 sm:p-6 bg-white rounded-xl border shadow-sm">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-                    <ShieldCheck className="h-6 w-6 text-blue-600" />
+                <div className="p-4 sm:p-6 bg-white dark:bg-slate-800 rounded-xl border shadow-sm">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mb-4">
+                    <ShieldCheck className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="font-bold mb-2">Estructuralmente Superior</h3>
+                  <h3 className="font-bold mb-2">Dos Tipos de Viguetas</h3>
                   <p className="text-sm text-muted-foreground">
-                    Las viguetas pretensadas tienen mayor capacidad de carga que el concreto armado convencional, 
-                    permitiendo claros más largos sin apoyos intermedios.
+                    <strong>Alma Abierta:</strong> Ligera, fácil manejo. <strong>Pretensada:</strong> Mayor capacidad de carga para claros amplios.
                   </p>
                 </div>
 
@@ -332,7 +341,7 @@ export default function TechnicalPage() {
                 <div className="p-2 bg-accent/10 rounded-lg">
                   <Ruler className="h-6 w-6 text-accent" />
                 </div>
-                <h2 className="text-2xl font-bold">Viguetas Pretensadas</h2>
+                <h2 className="text-2xl font-bold">Viguetas (Alma Abierta y Pretensada)</h2>
               </div>
               
               {beams.map((beam) => (

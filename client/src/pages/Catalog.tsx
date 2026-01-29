@@ -88,10 +88,64 @@ export default function CatalogPage() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("viguetas");
 
-  const viguetaProducts = [
+  const viguetaAlmaAbiertaProducts = [
+    {
+      title: "Vigueta de Alma Abierta P-15",
+      description: "Ligera y fácil de manejar. Para claros hasta 4.00 metros.",
+      badge: "Claro ≤ 4m",
+      specs: [
+        { label: "Peralte", value: "15 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Largo máximo", value: "4.00 m", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Separación entre ejes", value: "70 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Peso aproximado", value: "8 kg/m", icon: <Scale className="h-3 w-3" /> },
+      ],
+      features: [
+        "Peso ligero para fácil manejo",
+        "Estructura abierta tipo celosía",
+        "Compatible con bovedilla P-15",
+        "Ideal para autoconstrucción"
+      ]
+    },
+    {
+      title: "Vigueta de Alma Abierta P-20",
+      description: "Versátil y económica. Para claros hasta 5.00 metros.",
+      badge: "Claro ≤ 5m",
+      specs: [
+        { label: "Peralte", value: "20 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Largo máximo", value: "5.00 m", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Separación entre ejes", value: "70 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Peso aproximado", value: "10 kg/m", icon: <Scale className="h-3 w-3" /> },
+      ],
+      features: [
+        "Excelente relación costo-beneficio",
+        "Fácil transporte y colocación",
+        "Compatible con bovedilla P-20",
+        "Uso residencial general"
+      ]
+    },
+    {
+      title: "Vigueta de Alma Abierta P-25",
+      description: "Para claros amplios hasta 6.00 metros. Mayor versatilidad.",
+      badge: "Claro ≤ 6m",
+      specs: [
+        { label: "Peralte", value: "25 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Largo máximo", value: "6.00 m", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Separación entre ejes", value: "70 cm", icon: <Ruler className="h-3 w-3" /> },
+        { label: "Peso aproximado", value: "12 kg/m", icon: <Scale className="h-3 w-3" /> },
+      ],
+      features: [
+        "Estructura tipo celosía reforzada",
+        "Capacidad para claros medianos",
+        "Compatible con bovedilla P-25",
+        "Norma NMX-C-407-ONNCCE"
+      ]
+    }
+  ];
+
+  const viguetaPretensadaProducts = [
     {
       title: "Vigueta Pretensada P-15",
-      description: "Para claros hasta 4.00 metros. Ideal para espacios pequeños y medianos.",
+      description: "Más robusta para claros hasta 4.00 metros. Mayor capacidad de carga.",
       badge: "Claro ≤ 4m",
       specs: [
         { label: "Peralte", value: "15 cm", icon: <Ruler className="h-3 w-3" /> },
@@ -101,7 +155,7 @@ export default function CatalogPage() {
       ],
       features: [
         "Alta resistencia a la compresión",
-        "Fácil manejo e instalación",
+        "Acero pretensado de alta resistencia",
         "Compatible con bovedilla P-15",
         "Norma NMX-C-407-ONNCCE"
       ]
@@ -336,21 +390,40 @@ export default function CatalogPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="viguetas" className="space-y-4">
+          <TabsContent value="viguetas" className="space-y-6">
             <div className="bg-muted/50 rounded-lg p-4">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <Building2 className="h-5 w-5 text-primary" />
-                Viguetas Pretensadas
+                Viguetas para Sistema V&B
               </h3>
               <p className="text-sm text-muted-foreground">
-                Sistema de viguetas pretensadas para losas aligeradas. Selección automática de peralte según el claro (lado más corto).
+                Dos tipos de viguetas disponibles: <strong>Alma Abierta</strong> (ligera, fácil manejo) y <strong>Pretensada</strong> (mayor capacidad de carga).
                 Separación estándar entre ejes: 70 cm. Resistencia f'c = 250 kg/cm².
               </p>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {viguetaProducts.map((product, i) => (
-                <ProductCard key={i} {...product} />
-              ))}
+
+            <div>
+              <h4 className="text-lg font-semibold mb-3 text-primary">Vigueta de Alma Abierta</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Estructura tipo celosía, peso ligero. Ideal para autoconstrucción y proyectos donde el manejo fácil es prioritario.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {viguetaAlmaAbiertaProducts.map((product, i) => (
+                  <ProductCard key={`alma-${i}`} {...product} />
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-semibold mb-3 text-primary">Vigueta Pretensada</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Mayor capacidad de carga y claros más amplios. Ideal para entrepisos y espacios comerciales.
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {viguetaPretensadaProducts.map((product, i) => (
+                  <ProductCard key={`pret-${i}`} {...product} />
+                ))}
+              </div>
             </div>
           </TabsContent>
 
