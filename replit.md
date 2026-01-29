@@ -95,12 +95,61 @@ Compares Losa Tradicional (10cm) vs Losa Vigueta Bovedilla with polystyrene:
 **Features:**
 - Dimensions input starting at 0
 - Support type selector: Muros de Carga vs Trabes de Concreto (+15% vigueta cost)
-- Price inputs: Cement, Sand, Gravel, Water, Vigueta, Bovedilla
+- Price inputs: Cement, Sand, Gravel, Water, Vigueta, Bovedilla, Malla
 - Compression layer slider (3-7 cm)
 - Comparative materials table with costs
 - SVG floor plan: Dark background, colored viguetas by peralte, bovedillas, adjustment pieces
 - Worker slider (1-30) for time estimation
 - PDF budget generation with comparison table
+
+### Malla Electrosoldada
+Welded wire mesh for slab compression layer reinforcement:
+
+**Specifications:**
+- Type: 66-10x10 (caliber 10, 10cm x 10cm aperture)
+- Sheet dimensions: 2.35m × 6.00m
+- Overlap for splicing: 15cm
+- Calculation: Area total de losa × 1.02 (2% waste)
+- Sheets required: Area with waste ÷ (2.35 × 6.00)
+
+**Integration:**
+- Included in slab calculations (Calculator, Comparator, Budget)
+- Price input per sheet
+- Same quantity for both traditional and V&B systems
+
+### Panel Estructural (Structural Panel)
+EPS panels with double welded wire mesh for walls:
+
+**Specifications:**
+- Dimensions: 1.22m × 2.44m (standard)
+- Maximum length: 5.00m (special orders)
+- Thicknesses: 2", 3", 4", 5"
+- EPS Density: Adjustable 14-16 kg/m³
+- Reinforcement: 2 welded wire meshes caliber 14 per panel
+- Calculation: Wall area ÷ panel area + 2% waste
+
+**Features:**
+- Thickness slider (2"-5")
+- Density slider (14-16 kg/m³)
+- Panel count with waste calculation
+- Meshes required calculation (2 per panel)
+- Price per panel input
+
+### Product Catalog
+Complete product catalog page (`/catalog`) with specifications:
+
+**Sections:**
+- Viguetas Pretensadas (P-15, P-20, P-25)
+- Bovedillas EPS (by peralte)
+- Malla Electrosoldada 66-10x10
+- Panel Estructural (all thicknesses)
+
+**Information per product:**
+- Dimensions and specifications
+- Density and weight
+- Applicable standards (NMX-C, NMX-B)
+- Calculation formulas
+- Environmental benefits
 
 ### Build System
 - **Development**: Vite dev server with HMR, Express backend served alongside

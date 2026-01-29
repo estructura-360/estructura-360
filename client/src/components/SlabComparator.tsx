@@ -23,7 +23,16 @@ interface MaterialPrices {
   viguetaP20: number;  // $/pieza peralte 20
   viguetaP25: number;  // $/pieza peralte 25
   bovedilla: number;   // $/m³
+  malla: number;       // $/hoja malla electrosoldada 66-10x10
 }
+
+// Malla electrosoldada specifications
+const MALLA = {
+  type: '66-10x10',
+  sheetWidth: 2.35,
+  sheetLength: 6.00,
+  waste: 1.02, // 2% waste
+};
 
 interface SlabDimensions {
   length: number;
@@ -37,6 +46,7 @@ interface CalculationResults {
     sand: { m3: number; buckets: number };
     gravel: { m3: number; buckets: number };
     water: { liters: number };
+    malla: { area: number; sheets: number };
     totalCost: number;
     weight: number;
     days: number;
@@ -49,6 +59,7 @@ interface CalculationResults {
     water: { liters: number };
     viguetas: { count: number; meters: number; distribution: ViguetaDistribution };
     bovedillas: number;
+    malla: { area: number; sheets: number };
     totalCost: number;
     weight: number;
     days: number;
@@ -169,6 +180,7 @@ export function SlabComparator() {
     viguetaP20: 0,
     viguetaP25: 0,
     bovedilla: 0,
+    malla: 0,
   });
 
   const [dimensions, setDimensions] = useState<SlabDimensions>({
@@ -365,8 +377,18 @@ export function SlabComparator() {
     const traditionalDays = Math.ceil(area / (workers * COEFFICIENTS.productivityTraditional));
     const vbDays = Math.ceil(area / (workers * COEFFICIENTS.productivityVB));
     
+    // Malla electrosoldada calculation - same for both systems
+    const mallaArea = area * MALLA.waste; // Area + 2% waste
+    const mallaSheetArea = MALLA.sheetWidth * MALLA.sheetLength;
+    const mallaSheets = Math.ceil(mallaArea / mallaSheetArea);
+    const mallaCost = mallaSheets * prices.malla;
+    
+    // Update costs with malla
+    const traditionalTotalCost = traditionalCost + mallaCost;
+    const vbTotalCost = vbCost + mallaCost;
+    
     const materialSaved = traditionalVolume - vbConcreteVolume;
-    const costSaved = traditionalCost - vbCost;
+    const costSaved = traditionalTotalCost - vbTotalCost;
     const weightSaved = traditionalWeight - vbWeight;
     const timeSaved = traditionalDays - vbDays;
     
@@ -377,7 +399,8 @@ export function SlabComparator() {
         sand: { m3: traditionalSand, buckets: Math.ceil(traditionalSand * COEFFICIENTS.bucketsPerM3) },
         gravel: { m3: traditionalGravel, buckets: Math.ceil(traditionalGravel * COEFFICIENTS.bucketsPerM3) },
         water: { liters: Math.ceil(traditionalWater) },
-        totalCost: traditionalCost,
+        malla: { area: mallaArea, sheets: mallaSheets },
+        totalCost: traditionalTotalCost,
         weight: traditionalWeight,
         days: traditionalDays,
       },
@@ -389,7 +412,8 @@ export function SlabComparator() {
         water: { liters: Math.ceil(vbWater) },
         viguetas: { count: layout.joistPositions.length, meters: totalViguetaMeters, distribution: dist },
         bovedillas: totalBovedillas,
-        totalCost: vbCost,
+        malla: { area: mallaArea, sheets: mallaSheets },
+        totalCost: vbTotalCost,
         weight: vbWeight,
         days: vbDays,
       },
@@ -770,6 +794,19 @@ export function SlabComparator() {
                     placeholder="0"
                     className="h-11"
                     data-testid="input-bovedilla-price"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="malla" className="text-sm">Malla {MALLA.type} ($/hoja)</Label>
+                  <Input
+                    id="malla"
+                    type="number"
+                    min="0"
+                    value={prices.malla || ""}
+                    onChange={(e) => handlePriceChange("malla", e.target.value)}
+                    placeholder="0"
+                    className="h-11"
+                    data-testid="input-malla-price"
                   />
                 </div>
               </div>

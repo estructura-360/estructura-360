@@ -31,8 +31,12 @@ export default function BudgetPage() {
       let materialCost = 0;
       let viguetaCost = 0;
       let bovedillaCost = 0;
+      let mallaCost = 0;
+      let panelCost = 0;
       let viguetaCount = 0;
       let bovedillaVolume = 0;
+      let mallaSheets = 0;
+      let panelCount = 0;
       
       if (calc.type === 'slab') {
         const specs = calc.specs as any;
@@ -50,19 +54,31 @@ export default function BudgetPage() {
         // Use stored volume if available, otherwise calculate
         bovedillaVolume = results?.materials?.bovedillaVolume || (bovedillaCount * bovedillaPieceVolume);
         
+        // Malla electrosoldada calculation
+        const mallaData = results?.materials?.malla;
+        mallaSheets = mallaData?.sheets || Math.ceil(parseFloat(calc.area) * 1.02 / (2.35 * 6.00));
+        
         const viguetaUnitPrice = prices?.vigueta || 0;
         const bovedillaPricePerM3 = prices?.bovedilla || 0;
+        const mallaPricePerSheet = prices?.malla || 0;
         
         viguetaCost = viguetaCount * viguetaUnitPrice;
         bovedillaCost = bovedillaVolume * bovedillaPricePerM3;
-        materialCost = viguetaCost + bovedillaCost;
+        mallaCost = mallaSheets * mallaPricePerSheet;
+        materialCost = viguetaCost + bovedillaCost + mallaCost;
       } else if (calc.type === 'wall') {
         const specs = calc.specs as any;
+        const results = calc.results as any;
         const prices = specs?.prices || {};
+        
+        // Panel structural calculation
+        panelCount = results?.materials?.panelsWithWaste || results?.materials?.panels || 0;
+        const panelUnitPrice = prices?.panelPrice || 0;
+        panelCost = panelCount * panelUnitPrice;
         
         const linearCost = prices?.linearCost || 0;
         const heightCost = prices?.heightCost || 0;
-        materialCost = prices?.totalCost || (linearCost + heightCost);
+        materialCost = prices?.totalCost || (panelCost + linearCost + heightCost);
         
         if (materialCost === 0) {
           materialCost = parseFloat(calc.area) * 320;
@@ -79,8 +95,12 @@ export default function BudgetPage() {
         ...calc,
         viguetaCost,
         bovedillaCost,
+        mallaCost,
+        panelCost,
         viguetaCount,
         bovedillaVolume,
+        mallaSheets,
+        panelCount,
         baseCost,
         total
       };

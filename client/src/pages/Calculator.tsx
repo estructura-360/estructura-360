@@ -21,7 +21,7 @@ import { SlabComparator } from "@/components/SlabComparator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { calculateLayout, LayoutResult } from "@/lib/layoutPlanner";
+import { calculateLayout, calculatePanels, LayoutResult, MALLA_ELECTROSOLDADA, PANEL_ESTRUCTURAL } from "@/lib/layoutPlanner";
 import { SlabLayoutDiagram } from "@/components/SlabLayoutDiagram";
 
 // EPS density is FIXED at 8 kg/m³ per specifications
@@ -35,6 +35,7 @@ const slabFormSchema = z.object({
   climate: z.enum(["Caluroso", "Frío"]),
   viguetaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
   bovedillaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
+  mallaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
 });
 
 const getPeralteFromClaro = (shortestSide: number): "P-15" | "P-20" | "P-25" => {
@@ -60,8 +61,11 @@ const wallFormSchema = z.object({
   length: z.coerce.number().min(1, "La longitud debe ser mayor a 0"),
   height: z.coerce.number().min(1, "La altura debe ser mayor a 0"),
   type: z.enum(["load-bearing", "partition", "ceiling", "retaining"]),
+  panelThickness: z.coerce.number().min(2).max(5),
+  panelDensity: z.coerce.number().min(14).max(16),
   pricePerLinearMeter: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
   pricePerHeight: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
+  panelPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
 });
 
 export default function CalculatorPage() {
@@ -87,6 +91,7 @@ export default function CalculatorPage() {
       climate: "Caluroso",
       viguetaPrice: 0,
       bovedillaPrice: 0,
+      mallaPrice: 0,
     },
   });
 
@@ -96,8 +101,11 @@ export default function CalculatorPage() {
       length: 0,
       height: 0,
       type: "load-bearing",
+      panelThickness: 4,
+      panelDensity: 15,
       pricePerLinearMeter: 0,
       pricePerHeight: 0,
+      panelPrice: 0,
     },
   });
 
@@ -160,6 +168,7 @@ export default function CalculatorPage() {
       prices: {
         vigueta: values.viguetaPrice,
         bovedilla: values.bovedillaPrice,
+        malla: values.mallaPrice,
         peralte: calculatedPeralte,
         viguetaType: values.viguetaType
       }
@@ -179,7 +188,12 @@ export default function CalculatorPage() {
           vaults: layout.totalVaults,
           vaultsWithWaste: layout.totalVaultsWithWaste,
           bovedillaVolume: layout.bovedillaVolume,
-          mesh: Math.ceil(area * 1.02) // 2% waste
+          malla: {
+            type: layout.malla.type,
+            areaTotal: layout.malla.areaTotal,
+            areaWithWaste: layout.malla.areaWithWaste,
+            sheets: layout.malla.sheets,
+          }
         },
         comparison: {
           concreteSaved: concreteSaved.toFixed(2),
@@ -211,18 +225,35 @@ export default function CalculatorPage() {
 
     const projectId = parseInt(selectedProjectId);
     const area = values.length * values.height;
+    
+    // Calculate structural panels
+    const panelResult = calculatePanels(
+      values.height, 
+      values.length, 
+      values.panelThickness, 
+      values.panelDensity
+    );
+    
+    const panelCost = panelResult.panelsWithWaste * values.panelPrice;
     const linearCost = values.length * values.pricePerLinearMeter;
     const heightCost = values.height * values.pricePerHeight;
-    const totalWallCost = linearCost + heightCost;
+    const totalWallCost = panelCost + linearCost + heightCost;
     
     const specs = { 
       wallType: values.type,
       dimensions: { length: values.length, height: values.height },
+      panel: {
+        thickness: values.panelThickness,
+        density: values.panelDensity,
+        dimensions: panelResult.dimensions,
+      },
       prices: {
         pricePerLinearMeter: values.pricePerLinearMeter,
         pricePerHeight: values.pricePerHeight,
+        panelPrice: values.panelPrice,
         linearCost,
         heightCost,
+        panelCost,
         totalCost: totalWallCost
       }
     };
@@ -233,7 +264,13 @@ export default function CalculatorPage() {
       area: area.toString(),
       specs,
       results: {
-        materials: { panels: Math.ceil(area / 2.97) },
+        materials: { 
+          panels: panelResult.panelsRequired,
+          panelsWithWaste: panelResult.panelsWithWaste,
+          meshesRequired: panelResult.meshesRequired,
+          thickness: panelResult.thickness,
+          density: panelResult.density,
+        },
         comparison: {
           timeSaved: Math.ceil(area / 15),
           weightReduced: (area * 80).toString(),
@@ -242,7 +279,15 @@ export default function CalculatorPage() {
       }
     });
 
-    wallForm.reset({ ...values, length: 0, height: 0, pricePerLinearMeter: 0, pricePerHeight: 0 });
+    wallForm.reset({ 
+      ...values, 
+      length: 0, 
+      height: 0, 
+      pricePerLinearMeter: 0, 
+      pricePerHeight: 0,
+      panelPrice: 0 
+    });
+    toast({ title: "Cálculo guardado", description: "El cálculo de panel estructural se agregó al proyecto." });
   };
 
   return (
@@ -649,6 +694,27 @@ export default function CalculatorPage() {
                                 </FormItem>
                               )}
                             />
+                            <FormField
+                              control={slabForm.control}
+                              name="mallaPrice"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">
+                                    Malla {MALLA_ELECTROSOLDADA.type} ($/hoja)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="0"
+                                      {...field}
+                                      className="h-10"
+                                      data-testid="input-malla-price"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
                       </div>
@@ -808,66 +874,149 @@ export default function CalculatorPage() {
                   </div>
 
                   {wallForm.watch("length") > 0 && wallForm.watch("height") > 0 && (
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
-                      <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                        <DollarSign className="h-4 w-4" />
-                        Precios para Presupuesto
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Área total: <span className="font-bold text-primary">
-                          {(wallForm.watch("length") * wallForm.watch("height")).toFixed(2)} m²
-                        </span>
-                      </p>
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={wallForm.control}
-                          name="pricePerLinearMeter"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Precio por metro lineal ($/m)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  {...field}
-                                  className="h-10"
-                                  data-testid="input-wall-price-linear"
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs">
-                                {wallForm.watch("length")}m × ${wallForm.watch("pricePerLinearMeter")} = ${(wallForm.watch("length") * wallForm.watch("pricePerLinearMeter")).toLocaleString()}
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={wallForm.control}
-                          name="pricePerHeight"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Precio por altura ($/m)</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  {...field}
-                                  className="h-10"
-                                  data-testid="input-wall-price-height"
-                                />
-                              </FormControl>
-                              <FormDescription className="text-xs">
-                                {wallForm.watch("height")}m × ${wallForm.watch("pricePerHeight")} = ${(wallForm.watch("height") * wallForm.watch("pricePerHeight")).toLocaleString()}
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded-lg">
-                        <p className="text-sm text-center font-bold text-primary">
-                          Costo Total Estimado: ${((wallForm.watch("length") * wallForm.watch("pricePerLinearMeter")) + (wallForm.watch("height") * wallForm.watch("pricePerHeight"))).toLocaleString()}
+                    <div className="space-y-4">
+                      <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-xl border border-orange-200 dark:border-orange-800">
+                        <p className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-3 flex items-center gap-2">
+                          <Layers className="h-4 w-4" />
+                          Panel Estructural
                         </p>
+                        <p className="text-xs text-muted-foreground mb-3">
+                          Área total: <span className="font-bold text-primary">
+                            {(wallForm.watch("length") * wallForm.watch("height")).toFixed(2)} m²
+                          </span> | Paneles: <span className="font-bold text-primary">
+                            {Math.ceil((wallForm.watch("length") * wallForm.watch("height")) / (PANEL_ESTRUCTURAL.width * PANEL_ESTRUCTURAL.length) * 1.02)} pzas
+                          </span>
+                        </p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={wallForm.control}
+                            name="panelThickness"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Espesor: {field.value}"</FormLabel>
+                                <div className="pt-2 px-2">
+                                  <Slider
+                                    min={2}
+                                    max={5}
+                                    step={1}
+                                    defaultValue={[field.value]}
+                                    onValueChange={(vals) => field.onChange(vals[0])}
+                                    className="py-2"
+                                    data-testid="slider-panel-thickness"
+                                  />
+                                </div>
+                                <FormDescription className="flex justify-between text-xs">
+                                  <span>2"</span>
+                                  <span>5"</span>
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={wallForm.control}
+                            name="panelDensity"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Densidad EPS: {field.value} kg/m³</FormLabel>
+                                <div className="pt-2 px-2">
+                                  <Slider
+                                    min={14}
+                                    max={16}
+                                    step={1}
+                                    defaultValue={[field.value]}
+                                    onValueChange={(vals) => field.onChange(vals[0])}
+                                    className="py-2"
+                                    data-testid="slider-panel-density"
+                                  />
+                                </div>
+                                <FormDescription className="flex justify-between text-xs">
+                                  <span>14 kg/m³</span>
+                                  <span>16 kg/m³</span>
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="mt-3 text-xs text-muted-foreground">
+                          <p>Dimensiones: {PANEL_ESTRUCTURAL.width}m × {PANEL_ESTRUCTURAL.length}m | 2 mallas electrosoldadas calibre 14 por panel</p>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border">
+                        <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Precios para Presupuesto
+                        </p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField
+                            control={wallForm.control}
+                            name="panelPrice"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Precio Panel ($/pza)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    {...field}
+                                    className="h-10"
+                                    data-testid="input-panel-price"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={wallForm.control}
+                            name="pricePerLinearMeter"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Precio por metro lineal ($/m)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    {...field}
+                                    className="h-10"
+                                    data-testid="input-wall-price-linear"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={wallForm.control}
+                            name="pricePerHeight"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Precio por altura ($/m)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="0"
+                                    {...field}
+                                    className="h-10"
+                                    data-testid="input-wall-price-height"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                          <p className="text-sm text-center font-bold text-primary">
+                            Costo Total Estimado: ${(
+                              (Math.ceil((wallForm.watch("length") * wallForm.watch("height")) / (PANEL_ESTRUCTURAL.width * PANEL_ESTRUCTURAL.length) * 1.02) * wallForm.watch("panelPrice")) +
+                              (wallForm.watch("length") * wallForm.watch("pricePerLinearMeter")) + 
+                              (wallForm.watch("height") * wallForm.watch("pricePerHeight"))
+                            ).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   )}

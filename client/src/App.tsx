@@ -13,6 +13,7 @@ import AboutPage from "@/pages/About";
 import MarketplacePage from "@/pages/Marketplace";
 import SchedulePage from "@/pages/Schedule";
 import LogbookPage from "@/pages/Logbook";
+import CatalogPage from "@/pages/Catalog";
 
 function Router() {
   return (
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/marketplace" component={MarketplacePage} />
       <Route path="/schedule" component={SchedulePage} />
       <Route path="/logbook" component={LogbookPage} />
+      <Route path="/catalog" component={CatalogPage} />
       <Route component={NotFound} />
     </Switch>
   );

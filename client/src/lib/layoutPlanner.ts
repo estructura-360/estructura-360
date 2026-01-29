@@ -28,6 +28,70 @@ const CHAIN_WIDTH = 0.15;
 // Waste percentage
 const WASTE_PERCENTAGE = 0.02; // 2%
 
+// Malla electrosoldada specifications
+export const MALLA_ELECTROSOLDADA = {
+  type: '66-10x10',
+  caliber: 10,
+  aperture: 0.10, // 10cm x 10cm
+  sheetWidth: 2.35, // standard sheet width in meters
+  sheetLength: 6.00, // standard sheet length in meters
+  overlap: 0.15, // 15cm overlap for splicing
+};
+
+// Structural panel specifications
+export const PANEL_ESTRUCTURAL = {
+  width: 1.22,
+  length: 2.44,
+  maxLength: 5.00,
+  thicknesses: [2, 3, 4, 5], // inches
+  meshes: 2, // 2 welded wire meshes per panel
+  meshCaliber: 14,
+};
+
+export interface MallaResult {
+  areaTotal: number;
+  areaWithWaste: number;
+  sheets: number;
+  type: string;
+}
+
+export interface PanelResult {
+  wallArea: number;
+  panelsRequired: number;
+  panelsWithWaste: number;
+  thickness: number;
+  density: number;
+  meshesRequired: number;
+  dimensions: { width: number; length: number };
+}
+
+// Calculate structural panel requirements for walls
+export function calculatePanels(
+  height: number, 
+  length: number, 
+  thickness: number = 4, 
+  density: number = 15
+): PanelResult {
+  const wallArea = height * length;
+  const panelArea = PANEL_ESTRUCTURAL.width * PANEL_ESTRUCTURAL.length;
+  const panelsRequired = Math.ceil(wallArea / panelArea);
+  const panelsWithWaste = Math.ceil(panelsRequired * (1 + WASTE_PERCENTAGE));
+  const meshesRequired = panelsWithWaste * PANEL_ESTRUCTURAL.meshes;
+  
+  return {
+    wallArea,
+    panelsRequired,
+    panelsWithWaste,
+    thickness,
+    density: Math.min(Math.max(density, 14), 16), // Clamp between 14-16
+    meshesRequired,
+    dimensions: {
+      width: PANEL_ESTRUCTURAL.width,
+      length: PANEL_ESTRUCTURAL.length,
+    },
+  };
+}
+
 export interface LayoutResult {
   orientation: 'horizontal' | 'vertical';
   joistCount: number;
@@ -48,6 +112,7 @@ export interface LayoutResult {
   shortestSide: number;
   peralte: number;
   bovedillaVolume: number;
+  malla: MallaResult;
 }
 
 export interface JoistInfo {
@@ -216,6 +281,23 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
     recommendations.push(`Se requieren ${adjustmentPieces} piezas de ajuste de bovedilla.`);
   }
   
+  // ========================================
+  // MALLA ELECTROSOLDADA CALCULATION
+  // Cantidad = área total de losa + 2% desperdicio
+  // Considera traslapes y ensambles
+  // ========================================
+  const slabArea = longestSide * shortestSide;
+  const mallaAreaWithWaste = slabArea * (1 + WASTE_PERCENTAGE);
+  const sheetArea = MALLA_ELECTROSOLDADA.sheetWidth * MALLA_ELECTROSOLDADA.sheetLength;
+  const mallaSheets = Math.ceil(mallaAreaWithWaste / sheetArea);
+  
+  const malla: MallaResult = {
+    areaTotal: slabArea,
+    areaWithWaste: mallaAreaWithWaste,
+    sheets: mallaSheets,
+    type: MALLA_ELECTROSOLDADA.type,
+  };
+  
   return {
     orientation,
     joistCount: numJoists,
@@ -236,5 +318,6 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
     shortestSide,
     peralte,
     bovedillaVolume,
+    malla,
   };
 }

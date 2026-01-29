@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calculator, BarChart3, FileText, BookOpen, Menu, Hammer, HardHat, Info, ShoppingBag, CalendarDays, Camera } from "lucide-react";
+import { Calculator, BarChart3, FileText, BookOpen, Menu, Hammer, HardHat, Info, ShoppingBag, CalendarDays, Camera, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Calculadora", href: "/", icon: Calculator },
+  { name: "Catálogo", href: "/catalog", icon: Package },
   { name: "Cronograma", href: "/schedule", icon: CalendarDays },
   { name: "Bitácora", href: "/logbook", icon: Camera },
   { name: "Comparativa", href: "/comparative", icon: BarChart3 },
