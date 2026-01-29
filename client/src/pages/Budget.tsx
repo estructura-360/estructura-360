@@ -54,9 +54,9 @@ export default function BudgetPage() {
         // Use stored volume if available, otherwise calculate
         bovedillaVolume = results?.materials?.bovedillaVolume || (bovedillaCount * bovedillaPieceVolume);
         
-        // Malla electrosoldada calculation
+        // Malla electrosoldada calculation (rollos de 100m² = 2.5m × 40m)
         const mallaData = results?.materials?.malla;
-        mallaSheets = mallaData?.sheets || Math.ceil(parseFloat(calc.area) * 1.02 / (2.35 * 6.00));
+        mallaSheets = mallaData?.sheets || Math.ceil(parseFloat(calc.area) * 1.02 / 100);
         
         const viguetaUnitPrice = prices?.vigueta || 0;
         const bovedillaPricePerM3 = prices?.bovedilla || 0;
@@ -244,8 +244,8 @@ export default function BudgetPage() {
           // Malla electrosoldada row
           if (item.mallaSheets > 0) {
             tableData.push([
-              `    Malla Electrosoldada 66-10-10`,
-              `${item.mallaSheets} hojas`,
+              `    Malla Electrosoldada 6x6 10-10`,
+              `${item.mallaSheets} rollo(s) (100m²)`,
               `$${mallaPrice.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`,
               `$${item.mallaCost.toLocaleString('es-MX', { minimumFractionDigits: 2 })} MXN`
             ]);

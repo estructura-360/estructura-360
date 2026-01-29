@@ -701,7 +701,7 @@ export default function CalculatorPage() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs">
-                                    Malla {MALLA_ELECTROSOLDADA.type} ($/hoja)
+                                    Malla {MALLA_ELECTROSOLDADA.type} ($/rollo 100m²)
                                   </FormLabel>
                                   <FormControl>
                                     <Input

@@ -251,14 +251,15 @@ export default function CatalogPage() {
   ];
 
   const mallaProduct = {
-    title: "Malla Electrosoldada 66-10×10",
-    description: "Malla de acero electrosoldada para refuerzo de losas y capas de compresión.",
+    title: "Malla Electrosoldada 6x6 10-10",
+    description: "Malla de acero electrosoldada para refuerzo de losas y capas de compresión. Se vende en rollos estándar de 100m².",
     badge: "Calibre 10",
     specs: [
       { label: "Tipo", value: MALLA_ELECTROSOLDADA.type, icon: <Grid3X3 className="h-3 w-3" /> },
       { label: "Calibre", value: `${MALLA_ELECTROSOLDADA.caliber}`, icon: <Ruler className="h-3 w-3" /> },
       { label: "Abertura", value: `${MALLA_ELECTROSOLDADA.aperture * 100} × ${MALLA_ELECTROSOLDADA.aperture * 100} cm`, icon: <Grid3X3 className="h-3 w-3" /> },
-      { label: "Dimensiones hoja", value: `${MALLA_ELECTROSOLDADA.sheetWidth} × ${MALLA_ELECTROSOLDADA.sheetLength} m`, icon: <Ruler className="h-3 w-3" /> },
+      { label: "Presentación", value: `Rollos de ${MALLA_ELECTROSOLDADA.rollArea}m²`, icon: <Ruler className="h-3 w-3" /> },
+      { label: "Dimensiones rollo", value: `${MALLA_ELECTROSOLDADA.rollWidth} × ${MALLA_ELECTROSOLDADA.rollLength} m`, icon: <Ruler className="h-3 w-3" /> },
       { label: "Traslape recomendado", value: `${MALLA_ELECTROSOLDADA.overlap * 100} cm`, icon: <Ruler className="h-3 w-3" /> },
     ],
     features: [
@@ -497,9 +498,9 @@ export default function CatalogPage() {
                     <div className="bg-white/50 dark:bg-black/20 rounded p-2 font-mono text-xs">
                       Área malla = Área losa × 1.02
                     </div>
-                    <p className="font-medium mt-3">Hojas requeridas:</p>
+                    <p className="font-medium mt-3">Rollos requeridos:</p>
                     <div className="bg-white/50 dark:bg-black/20 rounded p-2 font-mono text-xs">
-                      Hojas = Área malla ÷ ({MALLA_ELECTROSOLDADA.sheetWidth} × {MALLA_ELECTROSOLDADA.sheetLength})
+                      Rollos = Área malla ÷ {MALLA_ELECTROSOLDADA.rollArea}m²
                     </div>
                     <p className="text-muted-foreground mt-2">
                       Redondear hacia arriba al entero más cercano.

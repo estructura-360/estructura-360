@@ -24,15 +24,20 @@ interface MaterialPrices {
   viguetaP20: number;  // $/pieza peralte 20
   viguetaP25: number;  // $/pieza peralte 25
   bovedilla: number;   // $/m³
-  malla: number;       // $/hoja malla electrosoldada 66-10x10
+  malla: number;       // $/rollo malla electrosoldada 6x6 10-10 (100m²)
 }
 
 // Malla electrosoldada specifications
+// Standard rolls of 100m² (2.5m × 40m)
 const MALLA = {
-  type: '66-10x10',
-  sheetWidth: 2.35,
-  sheetLength: 6.00,
+  type: '6x6 10-10',
+  rollWidth: 2.50, // meters
+  rollLength: 40.00, // meters
+  rollArea: 100, // m² per roll
   waste: 1.02, // 2% waste
+  // Legacy references for compatibility
+  sheetWidth: 2.50,
+  sheetLength: 40.00,
 };
 
 interface SlabDimensions {
@@ -798,7 +803,7 @@ export function SlabComparator() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="malla" className="text-sm">Malla {MALLA.type} ($/hoja)</Label>
+                  <Label htmlFor="malla" className="text-sm">Malla {MALLA.type} ($/rollo 100m²)</Label>
                   <Input
                     id="malla"
                     type="number"

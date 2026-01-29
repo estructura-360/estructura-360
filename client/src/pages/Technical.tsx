@@ -151,9 +151,10 @@ const components = [
   },
   {
     name: "Malla Electrosoldada",
-    description: "Refuerzo de la capa de compresión que controla fisuras por temperatura y distribuye cargas puntuales.",
+    description: "Refuerzo de la capa de compresión que controla fisuras por temperatura y distribuye cargas puntuales. Se vende en rollos estándar de 100m².",
     specs: [
-      { label: "Tipo común", value: "6x6-10/10" },
+      { label: "Tipo común", value: "6x6 10-10" },
+      { label: "Presentación", value: "Rollos de 100m² (2.5m × 40m)" },
       { label: "Acero", value: "fy = 5,000 kg/cm²" },
       { label: "Traslape", value: "Mínimo 20cm (1 cuadro)" },
       { label: "Separación", value: "2cm sobre bovedilla" },

@@ -29,13 +29,18 @@ const CHAIN_WIDTH = 0.15;
 const WASTE_PERCENTAGE = 0.02; // 2%
 
 // Malla electrosoldada specifications
+// Standard rolls of 100m² (2.5m × 40m)
 export const MALLA_ELECTROSOLDADA = {
-  type: '66-10x10',
+  type: '6x6 10-10',
   caliber: 10,
   aperture: 0.10, // 10cm x 10cm
-  sheetWidth: 2.35, // standard sheet width in meters
-  sheetLength: 6.00, // standard sheet length in meters
+  rollWidth: 2.50, // standard roll width in meters
+  rollLength: 40.00, // standard roll length in meters
+  rollArea: 100, // m² per roll (2.5 × 40)
   overlap: 0.15, // 15cm overlap for splicing
+  // Legacy sheet references for compatibility
+  sheetWidth: 2.50,
+  sheetLength: 40.00,
 };
 
 // Structural panel specifications

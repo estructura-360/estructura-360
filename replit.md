@@ -106,15 +106,16 @@ Compares Losa Tradicional (10cm) vs Losa Vigueta Bovedilla with polystyrene:
 Welded wire mesh for slab compression layer reinforcement:
 
 **Specifications:**
-- Type: 66-10x10 (caliber 10, 10cm x 10cm aperture)
-- Sheet dimensions: 2.35m × 6.00m
+- Type: 6x6 10-10 (caliber 10, 10cm x 10cm aperture)
+- Sold in: Standard rolls of 100m²
+- Roll dimensions: 2.5m wide × 40m long
 - Overlap for splicing: 15cm
-- Calculation: Area total de losa × 1.02 (2% waste)
-- Sheets required: Area with waste ÷ (2.35 × 6.00)
+- Calculation: Área total de losa × 1.02 (2% waste)
+- Rolls required: Área con desperdicio ÷ 100m² (redondear hacia arriba)
 
 **Integration:**
 - Included in slab calculations (Calculator, Comparator, Budget)
-- Price input per sheet
+- Price input per roll (100m²)
 - Same quantity for both traditional and V&B systems
 
 ### Panel Estructural (Structural Panel)
@@ -141,7 +142,7 @@ Complete product catalog page (`/catalog`) with specifications:
 **Sections:**
 - Viguetas Pretensadas (P-15, P-20, P-25)
 - Bovedillas EPS (by peralte)
-- Malla Electrosoldada 66-10x10
+- Malla Electrosoldada 6x6 10-10 (rollos 100m²)
 - Panel Estructural (all thicknesses)
 
 **Information per product:**
