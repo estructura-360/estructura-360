@@ -60,26 +60,37 @@ Compares Losa Tradicional (10cm) vs Losa Vigueta Bovedilla with polystyrene:
 - Vigueta de Alma Abierta: Lightweight, easy to handle (factor 1.0)
 - Vigueta Pretensada: Heavier, more robust for large spans (factor 1.10)
 
-**Automatic Peralte Selection (based on shortest side):**
-- ≤1.9m → Peralte 15 cm
-- 1.9m-5m → Peralte 20 cm
-- 5m-6m → Peralte 25 cm
+**Peralte Selection (based on claro - shortest side):**
+- Claro ≤ 4.00m → Peralte 15 cm (vigueta peralte 15)
+- Claro ≤ 5.00m → Peralte 20 cm (vigueta peralte 20)
+- Claro ≤ 10.00m → Peralte 25 cm (vigueta peralte 25)
+- Claro > 10m → Auto-divide en tramos ≤10m con apoyos intermedios
 
 **Bovedilla Specifications:**
-- Dimensions: 1.22m × 0.63m × 0.12m
+- Dimensions by peralte:
+  - P-15: 1.22m × 0.63m × 0.15m
+  - P-20: 1.22m × 0.63m × 0.20m
+  - P-25: 1.22m × 0.63m × 0.25m
 - Axis distance: 70cm between viguetas
+- EPS density: FIXED at 8 kg/m³
+
+**Calculation Formulas:**
+- Viguetas: (lado largo ÷ 0.70) → redondear al entero más cercano + 2% desperdicio
+- Largo de vigueta: lado corto (claro efectivo)
+- Bovedillas por fila: (largo vigueta ÷ 1.22) → redondear hacia arriba
+- Total bovedillas: bovedillas por fila × número de viguetas + 2% desperdicio
+- Volumen bovedilla: largo × ancho × peralte × total piezas
+
+**Example (5m x 3m room):**
+- Viguetas: 5m ÷ 0.70m = 7.14 = 7 viguetas de 3m
+- Bovedillas: 3m ÷ 1.22m = 2.45 = 3 bovedillas por fila
+- Total: 7 viguetas × 3 = 21 bovedillas
 
 **Comparison Logic:**
 - V&B applies 30% material savings vs traditional slab
 - Weight: Traditional 288 kg/m² vs V&B 180 kg/m²
 - Time: 60-70% reduction with V&B system (50 m²/day vs 5 m²/day)
 - Formwork: 85% savings (eliminates contact formwork)
-
-**Layout Algorithm:**
-- Viguetas: Divide longest side by 0.70, round DOWN (e.g., 10/0.7=14.28 → 14 viguetas)
-- No viguetas at edges (perimeter chain/wall space)
-- Bovedillas: Fill 100% of spaces between viguetas (1.22×0.63m pieces)
-- Adjustment pieces: Cut bovedillas to fill remainders (no empty gaps)
 
 **Features:**
 - Dimensions input starting at 0

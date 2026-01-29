@@ -24,12 +24,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { calculateLayout, LayoutResult } from "@/lib/layoutPlanner";
 import { SlabLayoutDiagram } from "@/components/SlabLayoutDiagram";
 
+// EPS density is FIXED at 8 kg/m³ per specifications
+const EPS_DENSITY_FIXED = 8;
+
 const slabFormSchema = z.object({
   length: z.coerce.number().min(1, "El largo debe ser mayor a 0"),
   width: z.coerce.number().min(1, "El ancho debe ser mayor a 0"),
   beamDepth: z.enum(["P-15", "P-20", "P-25"]),
   viguetaType: z.enum(["almaAbierta", "pretensada"]),
-  density: z.coerce.number().min(10).max(25),
   climate: z.enum(["Caluroso", "Frío"]),
   viguetaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
   bovedillaPrice: z.coerce.number().min(0, "El precio debe ser mayor o igual a 0"),
@@ -82,7 +84,6 @@ export default function CalculatorPage() {
       width: 0,
       beamDepth: "P-15",
       viguetaType: "almaAbierta",
-      density: 12,
       climate: "Caluroso",
       viguetaPrice: 0,
       bovedillaPrice: 0,
@@ -149,16 +150,17 @@ export default function CalculatorPage() {
     const viguetaConfig = VIGUETA_TYPES[values.viguetaType];
     
     const specs = { 
-      beamDepth: values.beamDepth, 
+      beamDepth: calculatedPeralte, 
       viguetaType: values.viguetaType,
       viguetaTypeLabel: viguetaConfig.label,
-      polystyreneDensity: values.density,
+      polystyreneDensity: EPS_DENSITY_FIXED, // Fixed at 8 kg/m³
       climate: values.climate,
       dimensions: { length: values.length, width: values.width },
+      peralte: layout.peralte,
       prices: {
         vigueta: values.viguetaPrice,
         bovedilla: values.bovedillaPrice,
-        peralte: values.beamDepth,
+        peralte: calculatedPeralte,
         viguetaType: values.viguetaType
       }
     };
@@ -175,13 +177,15 @@ export default function CalculatorPage() {
         materials: { 
           beams: layout.joistCount, 
           vaults: layout.totalVaults,
-          mesh: Math.ceil(area * 1.1)
+          vaultsWithWaste: layout.totalVaultsWithWaste,
+          bovedillaVolume: layout.bovedillaVolume,
+          mesh: Math.ceil(area * 1.02) // 2% waste
         },
         comparison: {
           concreteSaved: concreteSaved.toFixed(2),
           weightReduced: weightReduced.toString(),
           timeSaved: Math.ceil(area / 20),
-          energyEfficiency: Math.round(values.density * 4),
+          energyEfficiency: Math.round(EPS_DENSITY_FIXED * 4),
           thermalConfort: values.climate === 'Frío' ? 85 : 88
         },
         layout: {
@@ -630,7 +634,7 @@ export default function CalculatorPage() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel className="text-xs">
-                                    Bovedilla {slabForm.watch("density")}kg/m³ ($/m³)
+                                    Bovedilla EPS {EPS_DENSITY_FIXED}kg/m³ ($/m³)
                                   </FormLabel>
                                   <FormControl>
                                     <Input
@@ -651,32 +655,12 @@ export default function CalculatorPage() {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-                    <FormField
-                      control={slabForm.control}
-                      name="density"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Densidad de Bovedilla (kg/m³): {field.value}</FormLabel>
-                          <div className="pt-2 px-2">
-                            <Slider
-                              min={10}
-                              max={25}
-                              step={1}
-                              defaultValue={[field.value]}
-                              onValueChange={(vals) => field.onChange(vals[0])}
-                              className="py-4"
-                              data-testid="slider-density"
-                            />
-                          </div>
-                          <FormDescription className="flex justify-between text-xs">
-                            <span>Ligero (10kg)</span>
-                            <span>Térmico (25kg)</span>
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Densidad EPS:</span>
+                      <span className="text-lg font-bold text-primary">{EPS_DENSITY_FIXED} kg/m³</span>
+                      <span className="text-xs text-muted-foreground">(Densidad fija según especificaciones)</span>
+                    </div>
                   </div>
 
                   <div className="space-y-4">

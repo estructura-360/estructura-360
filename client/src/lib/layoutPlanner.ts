@@ -1,36 +1,53 @@
 // Layout Planner for Beam & Vault Slab Systems
 // Calculates optimal distribution of joists (viguetas) and vaults (bovedillas)
-// Uses same logic as SlabComparator for consistency
+// Based on specifications: viguetas each 70cm, bovedillas 1.22x0.63m
 
 // Standard joist lengths available (in meters)
-const STANDARD_LENGTHS = [3, 4, 5, 6];
+const STANDARD_LENGTHS = [3, 4, 5, 6, 10];
 
 // Bovedilla dimensions (standard polystyrene bovedilla)
 const BOVEDILLA = {
   length: 1.22,  // 1.22m along joist direction
-  width: 0.63,   // 0.63m perpendicular
+  width: 0.63,   // 0.63m perpendicular (axis distance between viguetas)
   axisDistance: 0.70, // 70cm between viguetas
+};
+
+// EPS density is FIXED at 8 kg/m³
+export const EPS_DENSITY = 8;
+
+// Peralte dimensions for bovedillas (height in meters)
+export const PERALTE_HEIGHTS: { [key: number]: number } = {
+  15: 0.15,
+  20: 0.20,
+  25: 0.25,
 };
 
 // Chain width (cadena perimetral)
 const CHAIN_WIDTH = 0.15;
 
+// Waste percentage
+const WASTE_PERCENTAGE = 0.02; // 2%
+
 export interface LayoutResult {
   orientation: 'horizontal' | 'vertical';
   joistCount: number;
+  joistCountWithWaste: number;
   joistLength: number;
   selectedBeamLength: number;
   joists: JoistInfo[];
   joistPositions: number[];
   bovedillaRows: BovedillaRow[];
-  vaultsPerBay: number;
+  bovedillasPerRow: number;
   totalVaults: number;
+  totalVaultsWithWaste: number;
   adjustmentPieces: number;
   waste: number;
   wastePercentage: number;
   recommendations: string[];
   longestSide: number;
   shortestSide: number;
+  peralte: number;
+  bovedillaVolume: number;
 }
 
 export interface JoistInfo {
@@ -46,6 +63,16 @@ export interface BovedillaRow {
   pieces: { x: number; width: number; isAdjustment: boolean }[];
 }
 
+// Get peralte based on claro (shortest side)
+// P-15: claro ≤ 4.00m
+// P-20: claro ≤ 5.00m  
+// P-25: claro ≤ 10.00m
+export function getPeralteFromClaro(claro: number): number {
+  if (claro <= 4.00) return 15;
+  if (claro <= 5.00) return 20;
+  return 25;
+}
+
 export function calculateLayout(lengthInput: number, widthInput: number): LayoutResult {
   // Ensure we have valid numbers
   const length = Number(lengthInput) || 1;
@@ -53,18 +80,25 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
   
   // Determine longest and shortest sides
   const longestSide = Math.max(length, width);
-  const shortestSide = Math.min(length, width);
+  const shortestSide = Math.min(length, width); // This is the "claro"
   const orientation = length >= width ? 'horizontal' : 'vertical';
   
-  // Calculate number of viguetas: divide longest side by 0.70, round DOWN
-  // No viguetas at edges (space for perimeter chain)
-  const numJoists = Math.floor(longestSide / BOVEDILLA.axisDistance);
+  // Determine peralte based on claro (shortest side)
+  const peralte = getPeralteFromClaro(shortestSide);
+  const bovedillaHeight = PERALTE_HEIGHTS[peralte];
   
-  // Joist length is the shortest side (joists span across the shortest dimension)
+  // ========================================
+  // VIGUETAS CALCULATION
+  // Cantidad = (lado más largo ÷ 0.70) → round to nearest integer
+  // ========================================
+  const numJoists = Math.round(longestSide / BOVEDILLA.axisDistance);
+  const numJoistsWithWaste = Math.ceil(numJoists * (1 + WASTE_PERCENTAGE));
+  
+  // Joist length is the shortest side (joists span across the claro)
   const joistLength = shortestSide;
   
   // Select appropriate beam length
-  const maxStandardLength = STANDARD_LENGTHS[STANDARD_LENGTHS.length - 1]; // 6m
+  const maxStandardLength = STANDARD_LENGTHS[STANDARD_LENGTHS.length - 1]; // 10m
   let selectedBeamLength: number;
   let piecesPerJoist: number;
   
@@ -72,12 +106,13 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
     selectedBeamLength = STANDARD_LENGTHS.find(len => len >= joistLength) || maxStandardLength;
     piecesPerJoist = 1;
   } else {
+    // If claro > 10m, need intermediate supports
     selectedBeamLength = maxStandardLength;
     const LAP_SPLICE = 0.30;
     piecesPerJoist = Math.ceil(joistLength / (maxStandardLength - LAP_SPLICE));
   }
   
-  // Calculate joist positions (evenly distributed, no joists at edges)
+  // Calculate joist positions (evenly distributed)
   const joistPositions: number[] = [];
   const joistSpacing = longestSide / (numJoists + 1);
   
@@ -94,12 +129,24 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
     isEdge: i === 0 || i === numJoists - 1
   }));
   
-  // Calculate bovedillas - fill 100% of spaces between viguetas
+  // ========================================
+  // BOVEDILLAS CALCULATION
+  // Bovedillas por fila = (largo de vigueta ÷ 1.22) → round UP
+  // Total = bovedillas por fila × número de viguetas
+  // ========================================
+  const bovedillasPerRow = Math.ceil(joistLength / BOVEDILLA.length);
+  const totalBovedillas = bovedillasPerRow * numJoists;
+  const totalBovedillasWithWaste = Math.ceil(totalBovedillas * (1 + WASTE_PERCENTAGE));
+  
+  // Calculate bovedilla volume
+  // Volumen = largo × ancho × peralte × total de bovedillas
+  const singleBovedillaVolume = BOVEDILLA.length * BOVEDILLA.width * bovedillaHeight;
+  const bovedillaVolume = singleBovedillaVolume * totalBovedillasWithWaste;
+  
+  // Build bovedilla rows for visualization
   const bovedillaRows: BovedillaRow[] = [];
-  let totalBovedillas = 0;
   let adjustmentPieces = 0;
   
-  // Calculate bovedilla layout for each row (space between joists)
   for (let i = 0; i <= numJoists; i++) {
     const rowStart = i === 0 ? CHAIN_WIDTH : joistPositions[i - 1];
     const rowEnd = i === numJoists ? longestSide - CHAIN_WIDTH : joistPositions[i];
@@ -107,7 +154,6 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
     
     if (rowWidth <= 0) continue;
     
-    // Calculate bovedilla pieces along the shortest side
     const pieces: { x: number; width: number; isAdjustment: boolean }[] = [];
     const availableLength = shortestSide - (CHAIN_WIDTH * 2);
     
@@ -138,15 +184,7 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
       y: rowStart,
       pieces,
     });
-    
-    totalBovedillas += pieces.length;
   }
-  
-  // Calculate vaults per bay (for display purposes)
-  const availableLength = shortestSide - (CHAIN_WIDTH * 2);
-  const fullPiecesPerBay = Math.floor(availableLength / BOVEDILLA.length);
-  const remainder = availableLength - (fullPiecesPerBay * BOVEDILLA.length);
-  const vaultsPerBay = fullPiecesPerBay + (remainder > 0.01 ? 1 : 0);
   
   // Calculate waste
   const totalMaterial = selectedBeamLength * piecesPerJoist * numJoists;
@@ -157,12 +195,17 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
   // Generate recommendations
   const recommendations: string[] = [];
   
+  if (shortestSide > 10) {
+    const segments = Math.ceil(shortestSide / 10);
+    recommendations.push(`Claro > 10m. Se divide en ${segments} tramos con apoyos intermedios.`);
+  }
+  
   if (wastePercentage > 15) {
     recommendations.push(`Considere ajustar dimensiones para reducir desperdicio (${wastePercentage.toFixed(1)}%)`);
   }
   
-  if (joistLength > 6) {
-    recommendations.push(`Claro > 6m requiere ${piecesPerJoist} tramos de vigueta con traslape. Considere apoyos intermedios.`);
+  if (joistLength > 6 && joistLength <= 10) {
+    recommendations.push(`Claro de ${joistLength.toFixed(2)}m requiere vigueta de peralte 25.`);
   }
   
   if (joistLength < 3) {
@@ -176,18 +219,22 @@ export function calculateLayout(lengthInput: number, widthInput: number): Layout
   return {
     orientation,
     joistCount: numJoists,
+    joistCountWithWaste: numJoistsWithWaste,
     joistLength,
     selectedBeamLength,
     joists,
     joistPositions,
     bovedillaRows,
-    vaultsPerBay,
+    bovedillasPerRow,
     totalVaults: totalBovedillas,
+    totalVaultsWithWaste: totalBovedillasWithWaste,
     adjustmentPieces,
     waste,
     wastePercentage,
     recommendations,
     longestSide,
     shortestSide,
+    peralte,
+    bovedillaVolume,
   };
 }

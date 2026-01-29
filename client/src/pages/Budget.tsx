@@ -40,9 +40,15 @@ export default function BudgetPage() {
         const prices = specs?.prices || {};
         
         viguetaCount = results?.materials?.beams || 0;
-        const bovedillaCount = results?.materials?.vaults || 0;
-        const bovedillaPieceVolume = 1.22 * 0.63 * 0.12;
-        bovedillaVolume = bovedillaCount * bovedillaPieceVolume;
+        const bovedillaCount = results?.materials?.vaultsWithWaste || results?.materials?.vaults || 0;
+        
+        // Get peralte height based on stored peralte or calculate from dimensions
+        const peralteValue = specs?.peralte || 20;
+        const peralteHeight = peralteValue === 15 ? 0.15 : peralteValue === 25 ? 0.25 : 0.20;
+        const bovedillaPieceVolume = 1.22 * 0.63 * peralteHeight;
+        
+        // Use stored volume if available, otherwise calculate
+        bovedillaVolume = results?.materials?.bovedillaVolume || (bovedillaCount * bovedillaPieceVolume);
         
         const viguetaUnitPrice = prices?.vigueta || 0;
         const bovedillaPricePerM3 = prices?.bovedilla || 0;
