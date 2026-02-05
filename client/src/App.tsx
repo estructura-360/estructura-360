@@ -1,11 +1,14 @@
-import Login from "@/pages/Login";import { Switch, Route } from "wouter";
+import { Switch, Route } from "wouter";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import Login from "@/pages/Login";
+
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { OfflineBanner } from "@/components/OfflineBanner";
+
 import NotFound from "@/pages/not-found";
 import CalculatorPage from "@/pages/Calculator";
 import ComparativePage from "@/pages/Comparative";
@@ -20,7 +23,6 @@ import CatalogPage from "@/pages/Catalog";
 function Router() {
   return (
     <Switch>
-      <Route path="/login" component={Login} />
       <Route path="/" component={CalculatorPage} />
       <Route path="/comparative" component={ComparativePage} />
       <Route path="/budget" component={BudgetPage} />
@@ -35,41 +37,53 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    setUserEmail(data.user?.email ?? null);
-  });
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      setLoading(false);
+    });
 
-  supabase.auth.onAuthStateChange((_event, session) => {
-    setUserEmail(session?.user?.email ?? null);
-  });
-}, []);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
 
-const handleLogout = async () => {
-  await supabase.auth.signOut();
-  window.location.href = "/login";
-};
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
+  if (loading) return null;
+
+  if (!userEmail) {
+    return <Login />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Router />
         <Toaster />
         <OfflineBanner />
-      </TooltipProvider>
-      {userEmail && (
-  <div className="w-full flex justify-between items-center px-4 py-2 bg-gray-100 text-sm">
-    <div>{userEmail}</div>
 
-    <button onClick={handleLogout} className="text-red-600">
-      Cerrar sesión
-    </button>
-  </div>
-)}
+        <div className="fixed top-0 right-0 m-3 bg-white shadow rounded px-3 py-1 text-sm flex gap-3 items-center">
+          <span>{userEmail}</span>
+
+          <button onClick={handleLogout} className="text-red-600">
+            Cerrar sesión
+          </button>
+        </div>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
