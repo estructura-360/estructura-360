@@ -441,6 +441,16 @@ export function SlabComparator() {
     if (!results) return;
     
     const doc = new jsPDF();
+    doc.addImage("/logo.png", "PNG", 60, 10, 90, 30);
+
+doc.setFontSize(22);
+doc.text("PRESUPUESTO LOSA VIGUETA BOVEDILLA", 105, 55, { align: "center" });
+
+doc.setFontSize(12);
+doc.text(`Cliente: ______________________`, 20, 70);
+doc.text(`Fecha: ${new Date().toLocaleDateString("es-MX")}`, 20, 78);
+
+doc.addPage();
     const pageWidth = doc.internal.pageSize.getWidth();
     
     doc.setFillColor(15, 23, 42);
@@ -490,10 +500,17 @@ export function SlabComparator() {
          `${(results.traditional.gravel.m3 - results.vb.gravel.m3).toFixed(2)} m³`],
         ["Agua (litros)", results.traditional.water.liters.toString(), results.vb.water.liters.toString(),
          `${results.traditional.water.liters - results.vb.water.liters} L`],
+         [
+  "Sistema Vigueta & Bovedilla EPS",
+  `${dimensions.length}m × ${dimensions.width}m`,
+  "",
+  ""
+],
         ["Viguetas", "N/A", `${results.vb.viguetas.count} pzas (${results.vb.viguetas.meters.toFixed(1)}m)`, "-"],
         ["Bovedillas", "N/A", `${results.vb.bovedillas} pzas`, "-"],
       ],
-      theme: "striped",
+      theme: "grid",
+styles: { fontSize: 9 },
       headStyles: { fillColor: [15, 23, 42] },
     });
     
@@ -527,7 +544,15 @@ export function SlabComparator() {
     doc.text("AHORRO TOTAL CON LOSA VIGUETA BOVEDILLA", pageWidth / 2, yPos + 10, { align: "center" });
     doc.setFontSize(14);
     doc.text(`$${Math.abs(results.savings.cost).toLocaleString("es-MX", { minimumFractionDigits: 2 })} (${Math.abs(results.savings.costPct).toFixed(1)}%)`, pageWidth / 2, yPos + 20, { align: "center" });
-    
+    doc.setFontSize(20);
+doc.setTextColor(34, 197, 94);
+
+doc.text(
+  `TOTAL V&B: $${results.vb.totalCost.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`,
+  105,
+  260,
+  { align: "center" }
+);
     doc.save(`presupuesto-losa-${dimensions.length}x${dimensions.width}m.pdf`);
   };
 

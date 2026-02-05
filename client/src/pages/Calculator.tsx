@@ -1041,9 +1041,7 @@ export default function CalculatorPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="mt-8">
-        <EnvironmentalBenefits variant="compact" />
-      </div>
+      
     </Layout>
   );
 }
